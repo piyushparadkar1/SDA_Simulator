@@ -1,0 +1,150 @@
+{
+  "_description": "ISO 23247 Digital Twin Framework Mapping — HPCL PDA Simulator",
+  "_standard": "ISO 23247:2021 Automation systems and integration — Digital twin framework for manufacturing",
+  "_note": "Physical directory restructuring deferred to stable release to avoid import breakage. This manifest is the authoritative entity mapping.",
+  "_version": "2.0 (Phase 2 — PINN Hybrid Digital Twin)",
+  "_updated": "2026-04-01",
+
+  "observable_manufacturing_elements": {
+    "_description": "Represents the physical PDA extractors, sensors, and measured states",
+    "files": [
+      {
+        "path": "plant_data_loader.py",
+        "role": "DCS and LIMS data acquisition — loads extractor telemetry and lab measurements"
+      }
+    ],
+    "schemas": {
+      "ExtractorTrain": {
+        "fields": ["feed_flow", "so_ratio", "t_top", "t_bot", "t_mid", "t_steam_coil", "predilution_frac"],
+        "trains": ["train_a", "train_b"],
+        "units": {"flow": "m3/hr", "temperature": "degC", "so_ratio": "vol/vol"}
+      },
+      "SensorTelemetry": {
+        "source": "DCS extractor_parameters.xlsx",
+        "frequency": "1 hour",
+        "tags": ["FC4101a", "FC4101b", "TI41132", "TI41133", "FIC4103", "FIC41113"]
+      },
+      "LIMSMeasurement": {
+        "source": "lims.xlsx",
+        "frequency": "sparse (~10-14 per year)",
+        "fields": ["dao_visc_100", "feed_density", "feed_ccr", "feed_visc_135"]
+      }
+    }
+  },
+
+  "device_communication_entity": {
+    "_description": "Standardises data ingestion, pre-processing, and operating-mode detection",
+    "files": [
+      {
+        "path": "thermal_calibration.py",
+        "role": "DCS temperature signal processing — calibrates T-profile prediction model"
+      },
+      {
+        "path": "regime_detector.py",
+        "role": "Unsupervised operating mode detection — PCA+GMM on DCS telemetry (Phase 3 NEW)"
+      },
+      {
+        "path": "plant_data_loader.py",
+        "role": "Shared with OME — also handles ETL, steady-state filtering, LIMS alignment"
+      }
+    ]
+  },
+
+  "digital_twin_entity": {
+    "_description": "Core physics engine, discrepancy learning, and calibration logic",
+    "files": [
+      {
+        "path": "residue_distribution.py",
+        "role": "Feed characterisation — pseudo-component generation from SARA/CCR/viscosity",
+        "frozen": true
+      },
+      {
+        "path": "phct_eos.py",
+        "role": "PHCT equation of state — propane density, fugacity coefficients",
+        "frozen": true
+      },
+      {
+        "path": "lle_solver.py",
+        "role": "K-value computation and Rachford-Rice flash — equilibrium stage thermodynamics",
+        "frozen": true
+      },
+      {
+        "path": "asphaltene_kinetics.py",
+        "role": "Asphaltene precipitation kinetics",
+        "frozen": true
+      },
+      {
+        "path": "stage_efficiency.py",
+        "role": "Murphree stage efficiency model",
+        "frozen": true
+      },
+      {
+        "path": "entrainment_model.py",
+        "role": "Entrainment carry-over model",
+        "frozen": true
+      },
+      {
+        "path": "quality_model.py",
+        "role": "DAO viscosity prediction (Walther equation)",
+        "frozen": true
+      },
+      {
+        "path": "hunter_nash_extractor.py",
+        "role": "Stage-by-stage Hunter-Nash extraction column solver",
+        "frozen": true
+      },
+      {
+        "path": "simulator_bridge.py",
+        "role": "Bridges calibration data to physics engine; applies OLS and PINN corrections"
+      },
+      {
+        "path": "calibration_engine.py",
+        "role": "3+2-phase calibration orchestration (OLS visc + K_mult optimizer + optional PINN)"
+      },
+      {
+        "path": "pinn_network.py",
+        "role": "PINN discrepancy networks — DiscrepancyNet, PINNCorrector, feature extraction (Phase 4 NEW)"
+      },
+      {
+        "path": "pinn_trainer.py",
+        "role": "Physics-informed composite loss and training loop (Phase 4 NEW)"
+      },
+      {
+        "path": "pinn_calibration_engine.py",
+        "role": "PINN phases orchestration — regime detection, forward-pass cache, PINN training (Phase 3-4 NEW)"
+      }
+    ]
+  },
+
+  "user_entity": {
+    "_description": "Flask API endpoints and web UI — interfaces to operators and enterprise applications",
+    "files": [
+      {
+        "path": "run_simulation.py",
+        "role": "Flask application — all API endpoints (/api/simulate, /api/calibrate_workbooks, /api/run_diagnostic, etc.)"
+      },
+      {
+        "path": "diagnostic_pipeline.py",
+        "role": "7-stage diagnostic pipeline and smart calibration workflow orchestration"
+      },
+      {
+        "path": "sensitivity_analysis.py",
+        "role": "Sensitivity sweeps and operating margin calculations"
+      },
+      {
+        "path": "ui_template.html",
+        "role": "Single-page web UI — operator/expert mode, calibration panel, PINN status display"
+      }
+    ],
+    "api_endpoints": {
+      "/api/simulate":                  "Single-point physics simulation",
+      "/api/calibrate_workbooks":       "Full calibration with xlsx upload (enable_pinn supported)",
+      "/api/run_diagnostic":            "Pre-calibration 7-stage diagnostic",
+      "/api/sensitivity":               "Parameter sensitivity sweep",
+      "/api/operating_margins":         "Hydraulic margin analysis",
+      "/api/thermal_metrics":           "Thermal model diagnostics",
+      "/api/calibration_dataset_info":  "Dataset validation summary",
+      "/api/shutdown":                  "Graceful server shutdown"
+    }
+  }
+}

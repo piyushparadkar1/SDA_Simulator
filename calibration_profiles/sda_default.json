@@ -1,0 +1,12 @@
+{
+  "profile_name": "sda_default",
+  "description": "Default uncalibrated parameters",
+  "timestamp": "2026-03-12 18:27:25",
+  "parameters": {
+    "K_multiplier": 1.0,
+    "C_entrain": 0.015,
+    "k_precip": 0.5,
+    "E_murphree": 0.7,
+    "delta_crit": 2.5
+  }
+}

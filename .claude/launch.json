@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pda-simulator-flask",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["run_simulation.py"],
+      "port": 5000
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "n_clusters": 5,
+  "visc_hidden": 16,
+  "yield_hidden": 32,
+  "visc_clamp": 0.8,
+  "yield_clamp": 0.5,
+  "input_dim": 11
+}

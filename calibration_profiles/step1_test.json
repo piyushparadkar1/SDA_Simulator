@@ -1,0 +1,40 @@
+{
+  "profile_name": "step1_test",
+  "feed_name": "basra_kuwait_mix",
+  "n_points": 14,
+  "timestamp": "2026-03-12 21:55:21",
+  "parameters": {
+    "K_multiplier": 0.93,
+    "C_entrain": 0.039183,
+    "k_precip": 0.5773,
+    "E_murphree": 0.710114,
+    "delta_crit": 3.17919
+  },
+  "metrics": {
+    "DAO_yield": {
+      "MAE": 7.4695,
+      "RMSE": 7.6251,
+      "bias": 0.3661,
+      "n": 14
+    },
+    "DAO_density": {
+      "MAE": 0.0061,
+      "RMSE": 0.007,
+      "bias": 0.003,
+      "n": 14
+    },
+    "DAO_CCR": {
+      "MAE": 0.3728,
+      "RMSE": 0.3981,
+      "bias": -0.0126,
+      "n": 14
+    },
+    "asph_contam": {
+      "MAE": 0.2273,
+      "RMSE": 0.2468,
+      "bias": -0.0167,
+      "n": 14
+    }
+  },
+  "update_note": "K_mult updated 0.8534->0.93 (v1.7 value hit dead zone in v2.0 K-anchor)"
+}

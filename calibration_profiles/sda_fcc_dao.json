@@ -1,0 +1,12 @@
+{
+  "profile_name": "sda_fcc_dao",
+  "description": "FCC-mode DAO \u2014 K=1.037 recalibrated for density K-model, T70-80, S/O=8, DAO~32%",
+  "timestamp": "2026-03-15 14:35:53",
+  "parameters": {
+    "K_multiplier": 1.037,
+    "C_entrain": 0.015,
+    "k_precip": 0.5,
+    "E_murphree": 0.72,
+    "delta_crit": 2.3
+  }
+}

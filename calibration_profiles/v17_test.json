@@ -1,0 +1,43 @@
+{
+  "profile_name": "v17_test",
+  "feed_name": "basra_kuwait_mix",
+  "n_points": 16,
+  "timestamp": "2026-03-19 06:47:41",
+  "parameters": {
+    "K_multiplier": 0.937294,
+    "C_entrain": 0.007269,
+    "k_precip": 2.012147,
+    "E_murphree": 0.562378,
+    "delta_crit": 0.500013,
+    "alpha_density": 3.5,
+    "bottom_T_blend": 0.35,
+    "middle_T_blend": 0.55,
+    "steam_effectiveness": 0.6
+  },
+  "metrics": {
+    "DAO_yield": {
+      "MAE": 2.3474,
+      "RMSE": 2.849,
+      "bias": -0.0366,
+      "n": 16
+    },
+    "DAO_density": {
+      "MAE": 0.0031,
+      "RMSE": 0.0041,
+      "bias": 0.0018,
+      "n": 16
+    },
+    "DAO_CCR": {
+      "MAE": 0.1502,
+      "RMSE": 0.1754,
+      "bias": 0.0417,
+      "n": 16
+    },
+    "asph_contam": {
+      "MAE": 0.2065,
+      "RMSE": 0.2326,
+      "bias": -0.0393,
+      "n": 16
+    }
+  }
+}

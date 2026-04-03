@@ -1,0 +1,24 @@
+{
+  "n_clusters": 5,
+  "n_pca_components": 5,
+  "max_clusters": 5,
+  "pca_variance": 0.95,
+  "smoothing_hours": 3,
+  "bic_scores": {
+    "2": 173498.26619131074,
+    "3": 167599.41195994496,
+    "4": 154411.35917409183,
+    "5": 145852.65657481542
+  },
+  "features": [
+    "so_ratio_a",
+    "so_ratio_b",
+    "t_top_a",
+    "t_top_b",
+    "t_bot_a",
+    "t_bot_b",
+    "feed_flow_a",
+    "feed_flow_b",
+    "propane_temp"
+  ]
+}

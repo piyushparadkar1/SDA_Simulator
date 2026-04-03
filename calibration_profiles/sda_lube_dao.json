@@ -1,0 +1,14 @@
+{
+  "profile_name": "sda_lube_dao",
+  "description": "Lube-mode DAO \u2014 K=0.581 recalibrated for density K-model, T60-70, S/O=8, predil=0.226, DAO~18%",
+  "timestamp": "2026-03-15 14:35:53",
+  "parameters": {
+    "K_multiplier": 0.95,
+    "C_entrain": 0.015,
+    "k_precip": 0.5,
+    "E_murphree": 0.7,
+    "delta_crit": 2.8
+  },
+  "updated_at": "2026-04-02",
+  "update_note": "K_mult corrected from 0.581 (dead-zone) to 0.95 (lube-grade estimate)"
+}

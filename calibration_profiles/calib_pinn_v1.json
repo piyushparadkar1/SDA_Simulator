@@ -1,0 +1,162 @@
+{
+  "profile_name": "calib_pinn_v1",
+  "created_at": "2026-04-02T08:16:20",
+  "profile_type": "plant_workbook",
+  "calibration_mode": "dao_only",
+  "k_params_anchored": true,
+  "k_ref_used": null,
+  "alpha_density_fixed": 3.0,
+  "calibration_params": {
+    "K_multiplier": 0.856137073126118,
+    "E_murphree": 0.7,
+    "C_entrain": 0.015,
+    "delta_crit": 2.5,
+    "visc_slope": 1.0,
+    "visc_bias": 11.67335959850713
+  },
+  "thermal_params": {
+    "train_a": {
+      "alpha": 0.3225870648460891,
+      "beta": 0.25653823751384935,
+      "gamma": 1.3232053774474866e-12,
+      "phi": 2.941825302617392e-14
+    },
+    "train_b": {
+      "alpha": 0.05000000000000001,
+      "beta": 0.49304569842053786,
+      "gamma": 0.005589277906954835,
+      "phi": 0.29999999999999993
+    }
+  },
+  "phase1_visc_ols": {
+    "visc_slope": 1.0,
+    "visc_bias": 11.67335959850713,
+    "r_pearson": 0.4187,
+    "mode": "ols"
+  },
+  "metrics_before": {
+    "visc": {
+      "mae": 3.18699324941866,
+      "rmse": 4.123336612490138,
+      "r2": -0.5205358033764962,
+      "bias": -0.7399142358258362
+    },
+    "yield": {
+      "mae": 3.8124253949262883,
+      "rmse": 4.699842107014075,
+      "r2": -0.33221214981658953,
+      "bias": -0.8932259493697815
+    }
+  },
+  "metrics_after": {
+    "visc": {
+      "mae": 8.174,
+      "rmse": 9.8,
+      "r2": -7.589,
+      "bias": null
+    },
+    "yield": {
+      "mae": 4.378,
+      "rmse": 5.357,
+      "r2": -0.1129,
+      "bias": null
+    }
+  },
+  "thermal_metrics": {
+    "train_a": {
+      "mae_t_bottom": 1.8262357349670286,
+      "mae_t_middle": 1.9336700083057978,
+      "mae_t_steam_coil": 3.8349913100594724,
+      "mae_t_top": 6.296870245494862
+    },
+    "train_b": {
+      "mae_t_bottom": 4.4887685362730965,
+      "mae_t_middle": 1.8592089532652232,
+      "mae_t_steam_coil": 4.184641165352856,
+      "mae_t_top": 6.497734460329601
+    }
+  },
+  "dataset_info": {
+    "dcs_rows_total": 14363,
+    "dcs_rows_valid": 13594,
+    "dcs_rows_steady": 13726,
+    "visc_anchored_rows": 13159,
+    "date_range_start": "2024-05-30",
+    "date_range_end": "2026-03-21",
+    "dao_visc_count": 14155,
+    "feed_visc_count": 14266,
+    "feed_density_count": 14363,
+    "feed_ccr_count": 14363
+  },
+  "split_info": {
+    "train_rows_visc": 10527,
+    "visc_rows_used": 200,
+    "test_rows_visc": 2632,
+    "train_rows_dcs": 11490,
+    "test_rows_dcs": 2873,
+    "yield_rows_used": 500,
+    "yield_rows_total": 10624,
+    "split_date": "2025-11-21"
+  },
+  "weights_used": {
+    "yield": 0.4,
+    "visc": 1.0
+  },
+  "max_visc_rows": 200,
+  "max_yield_rows": 500,
+  "n_workers_loky": 12,
+  "correction_mode": "pinn",
+  "pinn": {
+    "status": "deployed",
+    "n_clusters": 5,
+    "pinn_checkpoint_dir": "calibration_profiles\\calib_pinn_v1",
+    "quality_gate": {
+      "passed": true,
+      "detail": "relative improvement confirmed"
+    },
+    "training_result": {
+      "epochs_trained": 40,
+      "final_loss": null,
+      "val_loss": null,
+      "best_epoch": 0,
+      "elapsed_sec": 20.10140872001648
+    },
+    "regime_summary": {
+      "n_clusters": 5,
+      "n_pca_components": 5,
+      "pca_variance_retained": 0.9735134456908153,
+      "bic_scores": {
+        "2": 173498.26619131074,
+        "3": 167599.41195994496,
+        "4": 154411.35917409183,
+        "5": 145852.65657481542
+      },
+      "cluster_sizes": [
+        4724,
+        1417,
+        1022,
+        3079,
+        3370
+      ],
+      "cluster_fractions": [
+        0.347,
+        0.104,
+        0.075,
+        0.226,
+        0.248
+      ],
+      "features_used": [
+        "so_ratio_a",
+        "so_ratio_b",
+        "t_top_a",
+        "t_top_b",
+        "t_bot_a",
+        "t_bot_b",
+        "feed_flow_a",
+        "feed_flow_b",
+        "propane_temp"
+      ],
+      "smoothing_hours": 3
+    }
+  }
+}

@@ -1,0 +1,113 @@
+[CALIB] ==========================================================
+[CALIB] Step 1: Loading calibration dataset (mode=dao_only)...
+[DATA] visc_anchored rows after tolerance=24h fix: 13159 (dao_visc_100 matched: 14155)
+[CALIB]   DCS rows: 14363, visc_anchored: 13159 [3.7s]
+[CALIB] Step 2: Phase 0 — Thermal model calibration...
+[CALIB]   Train A: alpha=0.323, beta=0.257, MAE_bot=1.83C, MAE_top=6.30C
+[CALIB]   Train B: alpha=0.050, beta=0.493, MAE_bot=4.49C, MAE_top=6.50C
+[CALIB]   Thermal done [0.4s]
+[CALIB] Step 3: Train/test split (80/20 chronological)...
+[CALIB]   visc: train=10527, test=2632, split=2025-11-21  dcs: train=11490, test=2873
+[CALIB] Step 3b: Subsampling training rows...
+[CALIB]   visc_train: 10527 -> 200 rows (cap=200)
+[CALIB]   Full yield_df after steady-state filter: 10624 rows
+[CALIB]   yield_train subsampled: 500 rows
+[CALIB] Step 3c: Pre-populating feed cache...
+[CALIB]   Feed cache ready: 271 compositions [0.6s]
+[CALIB] Step 4: Phase 1 — Viscosity OLS (closed-form)...
+[CALIB] Phase 1 visc OLS: 200 rows | 12 workers | K_mult=1.00
+[CALIB]   Phase 1 OLS diagnostics: r_pearson=0.419 | mean_pred=19.18 cSt | mean_meas=31.29 cSt | var_pred=17.301 | var_meas=8.183 | slope_raw=0.288 | bias_raw=25.77
+[CALIB] Phase 1 OLS done: slope=0.300 bias=25.77 cSt r=0.419 R²=0.169 on 200 rows [3.6s]
+[CALIB]   Phase 1 result: visc_slope=0.300, visc_bias=25.77 cSt [3.6s]
+[CALIB] Step 5: Pre-calibration metrics (test set)...
+[CALIB]   compute_metrics [before]: 2632 visc + 1000 yield = 3632 rows | 12 workers
+[CALIB]   compute_metrics [before] done: 3632 rows in 16.3s (222 rows/s)
+[CALIB]   Before: visc MAE=3.2 cSt  yield MAE=3.8 vol%  visc R2=-0.521  [16.4s]
+[CALIB] Step 6: Phase 2 optimizer START | mode=dao_only | 500 yield rows | 12 workers | params=['K_multiplier'] | max_nfev=50 | est ~0.5s/nfev -> ~0.5 min
+[CALIB] nfev=  1 | K=1.0000 | cost=542.875 | yield_conv=500/500 | elapsed=3s
+[CALIB] nfev=  2 | K=1.0000 | cost=542.875 | yield_conv=500/500 | elapsed=5s
+[CALIB] nfev=  3 | K=0.9123 | cost=320.223 | yield_conv=500/500 | elapsed=7s
+[CALIB] nfev=  4 | K=0.9123 | cost=320.223 | yield_conv=500/500 | elapsed=10s
+[CALIB] nfev=  5 | K=0.8740 | cost=272.213 | yield_conv=500/500 | elapsed=12s
+[CALIB] nfev=  6 | K=0.8740 | cost=272.213 | yield_conv=500/500 | elapsed=14s
+[CALIB] nfev=  7 | K=0.8562 | cost=258.867 | yield_conv=500/500 | elapsed=16s
+[CALIB] nfev=  8 | K=0.8562 | cost=258.867 | yield_conv=500/500 | elapsed=18s
+[CALIB] nfev=  9 | K=0.8506 | cost=259.489 | yield_conv=500/500 | elapsed=20s
+[CALIB] nfev= 10 | K=0.8548 | cost=258.942 | yield_conv=500/500 | elapsed=22s
+[CALIB] nfev= 11 | K=0.8558 | cost=259.053 | yield_conv=500/500 | elapsed=24s
+[CALIB] nfev= 12 | K=0.8561 | cost=259.507 | yield_conv=500/500 | elapsed=26s
+[CALIB] nfev= 13 | K=0.8562 | cost=258.827 | yield_conv=500/500 | elapsed=29s
+[CALIB] nfev= 14 | K=0.8562 | cost=258.827 | yield_conv=500/500 | elapsed=31s
+[CALIB] nfev= 15 | K=0.8561 | cost=259.537 | yield_conv=500/500 | elapsed=33s
+[CALIB] nfev= 16 | K=0.8562 | cost=258.810 | yield_conv=500/500 | elapsed=35s
+[CALIB] nfev= 17 | K=0.8562 | cost=258.810 | yield_conv=500/500 | elapsed=37s
+[CALIB] nfev= 18 | K=0.8561 | cost=259.554 | yield_conv=500/500 | elapsed=39s
+[CALIB] nfev= 19 | K=0.8561 | cost=258.802 | yield_conv=500/500 | elapsed=41s
+[CALIB] nfev= 20 | K=0.8561 | cost=258.802 | yield_conv=500/500 | elapsed=43s
+[CALIB] nfev= 21 | K=0.8561 | cost=259.555 | yield_conv=500/500 | elapsed=45s
+[CALIB] nfev= 22 | K=0.8561 | cost=258.797 | yield_conv=500/500 | elapsed=47s
+[CALIB] nfev= 23 | K=0.8561 | cost=258.798 | yield_conv=500/500 | elapsed=49s
+[CALIB] nfev= 24 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=51s
+[CALIB] nfev= 25 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=53s
+[CALIB] nfev= 26 | K=0.8561 | cost=259.550 | yield_conv=500/500 | elapsed=55s
+[CALIB] nfev= 27 | K=0.8561 | cost=259.555 | yield_conv=500/500 | elapsed=57s
+[CALIB] nfev= 28 | K=0.8561 | cost=259.558 | yield_conv=500/500 | elapsed=59s
+[CALIB] nfev= 29 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=61s
+[CALIB] nfev= 30 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=63s
+[CALIB] nfev= 31 | K=0.8561 | cost=259.558 | yield_conv=500/500 | elapsed=65s
+[CALIB] nfev= 32 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=67s
+[CALIB] nfev= 33 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=69s
+[CALIB] nfev= 34 | K=0.8561 | cost=259.558 | yield_conv=500/500 | elapsed=71s
+[CALIB] nfev= 35 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=73s
+[CALIB] nfev= 36 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=75s
+[CALIB] nfev= 37 | K=0.8561 | cost=258.788 | yield_conv=500/500 | elapsed=77s
+[CALIB] nfev= 38 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=79s
+[CALIB] nfev= 39 | K=0.8561 | cost=259.558 | yield_conv=500/500 | elapsed=81s
+[CALIB] nfev= 40 | K=0.8561 | cost=259.558 | yield_conv=500/500 | elapsed=84s
+[CALIB] nfev= 41 | K=0.8561 | cost=259.558 | yield_conv=500/500 | elapsed=85s
+[CALIB] nfev= 42 | K=0.8561 | cost=258.788 | yield_conv=500/500 | elapsed=87s
+[CALIB] nfev= 43 | K=0.8561 | cost=258.789 | yield_conv=500/500 | elapsed=90s
+[CALIB]   Phase 2 DONE: K_mult=0.8561, success=True, nfev=29, msg=`xtol` termination condition is satisfied. [89.5s]
+[CALIB] Step 6b: Phase 1.5 — re-run visc OLS at K_mult=0.8561...
+[CALIB] Phase 1 visc OLS: 200 rows | 12 workers | K_mult=0.86
+[CALIB]   Phase 1 OLS diagnostics: r_pearson=-0.013 | mean_pred=19.62 cSt | mean_meas=31.29 cSt | var_pred=33.554 | var_meas=8.183 | slope_raw=-0.007 | bias_raw=31.42
+[CALIB] Phase 1 OLS: r=-0.013 < 0.15 → bias-only correction: slope=1.0, bias=11.67 cSt  [mean shift only; OLS slope unreliable at this r]
+[CALIB]   Phase 1.5 done: slope=1.000 bias=11.67 r=-0.013  (Phase 1 was slope=0.300 bias=25.77 r=0.419) [0.9s]
+[CALIB]   Final calibrated params: {'K_multiplier': 0.856137073126118, 'E_murphree': 0.7, 'C_entrain': 0.015, 'delta_crit': 2.5, 'visc_slope': 1.0, 'visc_bias': 11.67335959850713}
+[CALIB] Step 7: Post-calibration metrics (test set)...
+[CALIB]   compute_metrics [after]: 2632 visc + 1000 yield = 3632 rows | 12 workers
+[CALIB]   compute_metrics [after] done: 3632 rows in 11.2s (325 rows/s)
+[CALIB]   After: visc MAE=11.5 cSt  yield MAE=10.1 vol%  visc R2=-13.302  [11.2s]
+[CALIB] Steps 3-4: Running PINN phases (regime detection + discrepancy training)...
+[PINN] K_mult override: 0.8561 → 1.0 (avoids dead-zone collapse)
+[PINN] Phase 3: Fitting operating regime detector...
+[PINN] Phase 4a: Caching physics engine predictions (~2-3 min)...
+[PINN] Phase 4b: Training discrepancy networks...
+[PINN] Phase 5: Evaluating PINN on test set...
+[PINN] DEPLOYED — corrections saved to calibration_profiles\calib_pinn_v1
+[CALIB]   PINN status=deployed correction_mode=pinn n_clusters=5 [247.0s]
+[CALIB] Step 8: Saving profile 'calib_pinn_v1'...
+[CALIB] DONE — profile saved to calibration_profiles\calib_pinn_v1.json
+[CALIB] ==========================================================
+C:\Users\piyush\Desktop\pda simulator\pda\pinn_trainer.py:236: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\autograd\generated\python_variable_methods.cpp:837.)
+  'train_loss': float(total_loss),
+=== RESULT ===
+{
+  "correction_mode": "pinn",
+  "metrics_after": {
+    "visc": {
+      "mae": 8.174,
+      "rmse": 9.8,
+      "r2": -7.589,
+      "n": 2632
+    },
+    "yield": {
+      "mae": 4.378,
+      "rmse": 5.357,
+      "r2": -0.1129,
+      "n": 2873
+    }
+  },
+  "pinn": null
+}

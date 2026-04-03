@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(python run_simulation.py --calibrate sample_plant_data.csv --profile step1_test --no-ui)",
+      "Bash(python run_simulation.py --profile sda_lube_dao --no-ui --T 60)",
+      "Bash(pip install:*)",
+      "Bash(python -c \"import openpyxl, sklearn, joblib; print\\(''OK''\\)\")",
+      "Bash(notebooklm list:*)"
+    ]
+  }
+}

@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SDA Simulator V1.10</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--bg4:#21262d;
+  --border:#30363d;--border2:#3d444d;
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --accent:#58a6ff;--accent2:#388bfd;
+  --green:#3fb950;--amber:#d29922;--red:#f85149;
+  --green-bg:rgba(63,185,80,0.10);--amber-bg:rgba(210,153,34,0.10);--red-bg:rgba(248,81,73,0.10);
+  --rad:8px;--rad2:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;min-height:100vh}
+
+.hdr{display:flex;align-items:center;gap:12px;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.hdr-logo{font-size:22px;font-weight:800;background:linear-gradient(135deg,#58a6ff,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-title{font-size:15px;font-weight:600;color:var(--text)}
+.hdr-tag{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--accent);background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.25);border-radius:4px;padding:3px 8px}
+.hdr-status{font-size:11px;color:var(--text2);margin-left:16px;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.mode-bar{display:flex;align-items:center;gap:10px;padding:8px 20px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.mode-label{font-size:12px;color:var(--text2);font-weight:500}
+.mode-pills{display:flex;gap:0;border:1px solid var(--border2);border-radius:6px;overflow:hidden}
+.mode-pills label{padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);background:var(--bg3);transition:all .15s}
+.mode-pills input[type=radio]{display:none}
+.mode-pills input[type=radio]:checked+label{background:var(--accent2);color:#fff}
+.run-btn{margin-left:auto;background:linear-gradient(135deg,var(--accent2),var(--green));color:#fff;border:none;border-radius:var(--rad2);padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.3px}
+.run-btn:hover{opacity:.88}
+.export-btn{background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:var(--rad2);padding:7px 14px;font-size:12px;cursor:pointer;margin-left:8px}
+.export-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+.layout{display:flex;min-height:calc(100vh - 82px)}
+.sidebar{width:280px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.content{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+
+.s-panel{border:1px solid var(--border);border-radius:var(--rad);background:var(--bg3)}
+.s-panel-hdr{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text2);padding:7px 12px;border-bottom:1px solid var(--border);text-transform:uppercase}
+.s-panel-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+label.slabel{font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:2px}
+select{width:100%;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rad2);color:var(--text);padding:6px 8px;font-size:12px;outline:none}
+select:focus{border-color:var(--accent)}
+
+.slider-row{display:flex;align-items:center;gap:6px}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent);height:4px}
+.snum{width:58px!important;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;color:var(--accent);font-size:12px;font-weight:600;text-align:center;padding:3px 4px;outline:none}
+.snum:focus{border-color:var(--accent)}
+
+.radio-row{display:flex;gap:6px;flex-wrap:wrap}
+.radio-row label{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg4)}
+.radio-row input[type=radio]{accent-color:var(--accent)}
+.radio-row label:has(input:checked){border-color:var(--accent2);background:rgba(56,139,253,0.10);color:var(--accent)}
+
+.expert-only{display:none}
+
+/* Health Strip */
+.health-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.health-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad);padding:12px 14px;position:relative;overflow:hidden;transition:border-color .3s}
+.health-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--green);border-radius:var(--rad) var(--rad) 0 0;transition:background .3s}
+.health-card.warn::before{background:var(--amber)}
+.health-card.risk::before{background:var(--red)}
+.hc-label{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text3);text-transform:uppercase;margin-bottom:4px}
+.hc-val{font-size:28px;font-weight:700;color:var(--text);line-height:1;margin-bottom:2px}
+.hc-unit{font-size:10px;color:var(--text2);margin-bottom:8px}
+.hc-status{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.4px;padding:2px 8px;border-radius:10px;background:var(--green-bg);color:var(--green)}
+.health-card.warn .hc-status{background:var(--amber-bg);color:var(--amber)}
+.health-card.risk .hc-status{background:var(--red-bg);color:var(--red)}
+.hc-bar-track{height:3px;background:var(--bg4);border-radius:2px;margin-top:10px;overflow:hidden}
+.hc-bar-fill{height:100%;border-radius:2px;background:var(--green);transition:width .5s}
+.health-card.warn .hc-bar-fill{background:var(--amber)}
+.health-card.risk .hc-bar-fill{background:var(--red)}
+
+/* Visual row */
+.visual-row{display:grid;grid-template-columns:220px 1fr;gap:12px}
+.column-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad);padding:12px}
+.col-title{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text2);text-transform:uppercase;margin-bottom:8px;text-align:center}
+.col-svg{width:100%;height:300px}
+
+.gauge-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad);padding:14px}
+.gauge-title{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text2);text-transform:uppercase;margin-bottom:14px}
+.gauge-row{margin-bottom:18px}
+.gauge-label-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.gauge-name{font-size:12px;font-weight:500;color:var(--text)}
+.gauge-readout{font-size:12px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.gauge-track{height:14px;border-radius:5px;position:relative;overflow:hidden}
+.gauge-fill{position:absolute;top:0;bottom:0;right:0;background:rgba(13,17,23,0.50);transition:right .5s}
+.gauge-marker{position:absolute;top:0;bottom:0;width:3px;background:#fff;border-radius:1px;box-shadow:0 0 4px rgba(255,255,255,.6);transition:left .5s}
+.gauge-zones{display:flex;font-size:9px;color:var(--text3);margin-top:2px;padding:0 1px}
+.gauge-zones span{flex:1}
+.gauge-zones span:last-child{text-align:right}
+
+/* Card */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad);overflow:hidden}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.card-hdr-title{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text2);text-transform:uppercase}
+.card-body{padding:12px 14px}
+
+/* Stage table */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:6px 8px;text-align:right;color:var(--text2);font-weight:600;font-size:10px;letter-spacing:.4px;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--bg3)}
+th:first-child{text-align:left}
+td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);color:var(--text)}
+td:first-child{text-align:left;color:var(--text2)}
+tr:last-child td{border-bottom:none}
+.ok{color:var(--green)}.warn{color:var(--amber)}.crit{color:var(--red)}
+
+/* Grids */
+.fp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.flow-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.th-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.fp-cell{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rad2);padding:8px 10px}
+.fp-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.fp-val{font-size:14px;font-weight:600;color:var(--text)}
+.fp-unit{font-size:10px;color:var(--text2)}
+.th-cell{text-align:center;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rad2)}
+.th-label{font-size:10px;color:var(--text3);margin-bottom:4px}
+.th-val{font-size:16px;font-weight:700;color:var(--text)}
+.th-unit{font-size:10px;color:var(--text2)}
+
+/* SARA bars */
+.sara-bars{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.sara-row{display:flex;align-items:center;gap:6px;font-size:11px}
+.sara-row-label{width:80px;color:var(--text2)}
+.sara-bar-track{flex:1;height:7px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.sara-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.sara-row-val{width:42px;text-align:right;font-weight:600;color:var(--text)}
+
+/* Sensitivity */
+.sens-bar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.sens-bar select{flex:1;min-width:180px}
+.plot-box{width:100%;height:340px;background:var(--bg3);border-radius:var(--rad2)}
+
+/* History */
+.hist-list{display:flex;flex-direction:column;gap:6px}
+.hist-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rad2);font-size:11px}
+.hist-id{width:22px;height:22px;border-radius:50%;background:var(--accent2);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hist-meta{flex:1;display:flex;flex-wrap:wrap;gap:4px 12px}
+.hist-metric{color:var(--text2)}
+.hist-metric strong{color:var(--text)}
+.hist-time{color:var(--text3);font-size:10px}
+
+/* Hydraulic warnings */
+.hw-list{display:flex;flex-direction:column;gap:5px}
+.hw-item{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:4px;font-size:11px}
+.hw-ok{background:var(--green-bg);color:var(--green)}
+.hw-warn{background:var(--amber-bg);color:var(--amber)}
+.hw-crit{background:var(--red-bg);color:var(--red)}
+
+/* Help tabs */
+.help-tab{padding:8px 14px;font-size:11px;font-weight:600;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s}
+.help-tab:hover{color:var(--text);background:rgba(255,255,255,0.04)}
+.help-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Calibration */
+.csv-drop{border:2px dashed var(--border2);border-radius:var(--rad);padding:16px;text-align:center;color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s;background:var(--bg3)}
+.csv-drop:hover,.csv-drop.has-file{border-color:var(--accent);background:rgba(88,166,255,0.05)}
+.wt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cal-results{background:var(--bg4);border:1px solid var(--border);border-radius:var(--rad2);padding:10px;font-size:11px;color:var(--text2);white-space:pre;font-family:monospace;max-height:180px;overflow-y:auto;display:none}
+.btn-sm{padding:6px 12px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rad2);color:var(--text);cursor:pointer;font-size:11px}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <span class="hdr-logo">SDA</span>
+  <div><div class="hdr-title">SDA Simulator V1.10</div></div>
+  <span class="hdr-tag">Digital Twin</span>
+  <span class="hdr-status" id="hdr_status">Ready &mdash; select feed and press Run Simulation</span>
+  <button id="btn_kill_server"
+          onclick="killServer()"
+          title="Stop the Flask development server"
+          style="margin-left:auto;padding:4px 12px;background:#7f1d1d;border:1px solid #ef4444;border-radius:6px;
+                 color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;
+                 transition:background 0.15s">
+    &#x23F9; Stop Server
+  </button>
+</header>
+
+<!-- MODE BAR -->
+<div class="mode-bar">
+  <span class="mode-label">Mode:</span>
+  <div class="mode-pills">
+    <input type="radio" name="ui_mode" id="m_op" value="operator" checked onchange="setMode('operator')">
+    <label for="m_op">Operator</label>
+    <input type="radio" name="ui_mode" id="m_ex" value="expert" onchange="setMode('expert')">
+    <label for="m_ex">Expert</label>
+  </div>
+  <button class="run-btn" onclick="runSim()">&#9654; Run Simulation</button>
+  <button class="run-btn" style="background:linear-gradient(135deg,#7b1fa2,#388bfd);margin-left:8px" onclick="runOperatingMargins()">&#9650; Operating Margins</button>
+  <button class="export-btn" onclick="exportExcel()">&#8659; Export Excel</button>
+  <button class="export-btn" onclick="showHelp()" title="Help">&#63; Help</button>
+</div>
+
+<!-- HELP MODAL -->
+<div id="help_modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999;overflow-y:auto" onclick="if(event.target===this)closeHelp()">
+  <div style="max-width:820px;margin:30px auto 60px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rad);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--bg3);border-bottom:1px solid var(--border)">
+      <div style="font-size:16px;font-weight:700;color:var(--text)">PDA Simulator V2.0 &mdash; Hybrid Digital Twin User Guide</div>
+      <button onclick="closeHelp()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <!-- Tab bar -->
+    <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <button class="help-tab active" onclick="showHelpTab(0)">Process Overview</button>
+      <button class="help-tab" onclick="showHelpTab(1)">Model Description</button>
+      <button class="help-tab" onclick="showHelpTab(2)">Input Parameters</button>
+      <button class="help-tab" onclick="showHelpTab(3)">Outputs</button>
+      <button class="help-tab" onclick="showHelpTab(4)">Calibration</button>
+      <button class="help-tab" onclick="showHelpTab(5)">PINN &amp; Hybrid Mode</button>
+      <button class="help-tab" onclick="showHelpTab(6)">About the Creator</button>
+    </div>
+    <!-- Content panels -->
+    <div style="padding:20px 24px;font-size:12px;color:var(--text2);line-height:1.7;max-height:70vh;overflow-y:auto">
+
+      <!-- Section 1: Process Overview -->
+      <div class="help-panel" id="help_p0">
+        <h3 style="color:var(--accent);font-size:14px;margin-bottom:12px">Section 1: Process Overview</h3>
+        <p>Solvent Deasphalting (SDA) is a solvent extraction process used in petroleum refining to separate heavy vacuum residue (VR) into two fractions: Deasphalted Oil (DAO) and asphalt (also called pitch or bitumen). The process exploits differences in solubility of hydrocarbon classes in light paraffinic solvents at near-supercritical conditions.</p>
+        <p style="margin-top:10px">The VR feed &mdash; the heaviest fraction from atmospheric and vacuum distillation &mdash; contains saturates, aromatics, resins, and asphaltenes (SARA classes). At elevated pressure and moderate temperature, a light alkane solvent (propane or butane) selectively dissolves the lighter, more paraffinic components (saturates and some aromatics) while rejecting the heavy asphaltenic and resinous components.</p>
+        <p style="margin-top:10px">The <strong style="color:var(--text)">Supercritical Extraction</strong> process recovers solvent by operating near its critical point, where the solvent density drops sharply with a small temperature increase. This enables energy-efficient solvent recovery without vaporisation &mdash; the DAO-rich phase separates as a dense liquid that is then flashed to recover propane.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">DAO products</strong> are used as: (a) Lube bright stock base oil &mdash; a high-viscosity index lubricant base requiring very low CCR and colour, (b) FCC feed &mdash; a catalytic cracker feedstock tolerating higher contamination in exchange for higher yield. The trade-off between yield and quality is the core operating challenge.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">Asphalt product</strong> is used for: road paving bitumen (if metals content is acceptable), fuel oil blending, or gasification feed. Its value is significantly lower than DAO.</p>
+        <p style="margin-top:10px">The <strong style="color:var(--text)">3-bed packed column extractor</strong> operates countercurrently: VR feed enters below the middle bed, fresh solvent enters at the bottom, and the DAO-rich extract exits from the top. LP steam coils between the middle and top bed create a temperature gradient that acts as internal reflux, improving selectivity by weakening the solvent near the top (higher temperature = lower propane density = weaker solvent power).</p>
+        <p style="margin-top:10px">The three beds serve distinct functions: the <em>bottom bed</em> handles asphalt rejection in a strong-solvent zone (fresh propane only, no feed yet), the <em>middle bed</em> is the primary extraction zone where feed is introduced, and the <em>top bed</em> is the polishing zone that determines final DAO colour and CCR.</p>
+      </div>
+
+      <!-- Section 2: Model Description -->
+      <div class="help-panel" id="help_p1" style="display:none">
+        <h3 style="color:var(--accent);font-size:14px;margin-bottom:12px">Section 2: Model Description</h3>
+        <p><strong style="color:var(--text)">Feed Representation.</strong> The vacuum residue is represented as a continuous mixture of pseudo-components, each characterised by molecular weight, SARA class, density, and solubility parameter. The SARA fractions (Saturates, Aromatics, Resins, Asphaltenes) are estimated from feed density, CCR, and viscosity using empirical correlations calibrated to heavy VR data (Speight 2020, Lian et al. 2014). Each SARA class spans a MW distribution (Gauss-Legendre quadrature, typically 5 components per class). This approach captures the polydisperse nature of VR in a computationally tractable way.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">K-Value Model (default, fast).</strong> Equilibrium partition coefficients K<sub>i</sub> = w<sub>i</sub><sup>DAO</sup> / w<sub>i</sub><sup>asphalt</sup> are computed from: (1) SARA-class base K from molecular weight using calibrated power-law parameters, (2) solubility parameter spread modifier (delta_crit) that shifts resin/asphaltene partitioning, (3) density-based solvent power correction: K &times;= (&rho;<sub>propane</sub>/&rho;<sub>ref</sub>)<sup>&alpha;</sup> where &rho;<sub>ref</sub> = 0.44 g/cm&sup3; and &alpha; = 3.0. This density correction is the key physical insight: propane density decreases with rising temperature at constant pressure, reducing K-values and DAO yield. It simultaneously captures both temperature and pressure effects correctly.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">PHCT Model (rigorous, slower).</strong> The Perturbed Hard Chain Theory EOS computes fugacity coefficients &phi;<sub>i</sub> for each component in each phase. K-values are updated iteratively from K<sub>i</sub><sup>new</sup> = &phi;<sub>i</sub><sup>II</sup>/&phi;<sub>i</sub><sup>I</sup> using successive substitution with damping for stability. The K-value model provides the initial guess. PHCT is thermodynamically self-consistent and accounts for associative interactions (resins, asphaltenes have higher polarity parameters), but is ~10&times; slower per stage.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">3-Bed Countercurrent Extractor.</strong> The stage-wise method solves the countercurrent cascade with 4 theoretical stages (Bottom: 2, Middle: 1, Top: 1 at HETP=2000mm). Each stage performs a Rachford-Rice flash (phase split calculation) followed by asphaltene precipitation kinetics and Murphree stage efficiency correction. Predilution propane injection is modelled as a reduced effective S/O ratio in the lower stages.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">Key Assumptions and Limitations.</strong> (1) Equilibrium is assumed at each theoretical stage &mdash; real stages may have lower efficiency (adjust E_murphree). (2) The K-value correlation is calibrated to propane at 35&ndash;45 bar; extrapolation outside this range may be unreliable. (3) Metals (Ni, V) partitioning is not modelled &mdash; the simulator does not predict DAO metals content. (4) Temperature profiles are estimated from inlet conditions using an energy balance; actual profiles depend on heat exchanger performance. (5) The model is most accurate near its calibration point.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">Why density (not temperature) drives extraction physics.</strong> At constant pressure, increasing temperature decreases propane density from ~0.52 g/cm&sup3; at 60&deg;C to ~0.35 g/cm&sup3; at 85&deg;C (at 40 bar). This is the dominant effect on solvent power. The density correction (&rho;/&rho;<sub>ref</sub>)<sup>3.0</sup> captures both the strong temperature dependence and the weaker pressure dependence in a single physically-grounded correlation.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:18px;margin-bottom:8px">V2.0 Addition: PINN Hybrid Digital Twin Layer</h4>
+        <p><strong style="color:var(--text)">Why a hybrid model?</strong> The physics engine is accurate near its calibration point but cannot capture all plant-specific deviations: crude blend shifts, column internals degradation, seasonal propane quality changes, and systematic sensor offsets. A Physics-Informed Neural Network (PINN) layer learns the residual discrepancy between physics predictions and plant measurements without replacing the thermodynamic foundation.</p>
+        <p style="margin-top:8px"><strong style="color:var(--text)">Discrepancy learning principle.</strong> The PINN corrects multiplicatively: <code style="background:var(--bg4);padding:1px 4px;border-radius:3px;font-size:10px">corrected = physics &times; (1 + &delta;)</code> where &delta; is a small learned correction. This preserves all physical constraints (mass balance, monotonicity with S/O) while allowing data-driven adaptation to plant reality. Corrections are clamped: |&delta;<sub>visc</sub>| &le; 0.5, |&delta;<sub>yield</sub>| &le; 0.3.</p>
+        <p style="margin-top:8px"><strong style="color:var(--text)">Operating regime awareness.</strong> The plant operates in distinct regimes (lube-grade low S/O, FCC-grade high S/O, seasonal crude shifts). A PCA + Gaussian Mixture Model (GMM) clusters DCS telemetry into 2&ndash;5 operating modes (number chosen automatically via BIC). The active cluster is passed as a one-hot input to the PINN, giving it regime-specific correction capability.</p>
+        <p style="margin-top:8px"><strong style="color:var(--text)">Network architecture.</strong> Two tiny MLP networks share one feature normaliser: (1) Viscosity net: 10 inputs &rarr; 8 neurons (Tanh) &rarr; 1 output &asymp; 89 parameters. (2) Yield net: 10 inputs &rarr; 16 neurons (Tanh) &rarr; 1 output &asymp; 177 parameters. Networks are deliberately tiny because only ~10&ndash;14 LIMS viscosity measurements per year are available &mdash; overfitting prevention dominates the design.</p>
+        <p style="margin-top:8px"><strong style="color:var(--text)">Physics-informed composite loss:</strong> L<sub>total</sub> = L<sub>data,visc</sub> + L<sub>data,yield</sub> + &lambda;<sub>mb</sub>&middot;L<sub>mass_balance</sub> + &lambda;<sub>mono</sub>&middot;L<sub>monotonicity</sub> + &lambda;<sub>L2</sub>&middot;L<sub>weight_decay</sub>. The mass balance penalty penalises yields outside [0%, 100%]. The monotonicity penalty enforces that higher S/O always produces equal or higher corrected yield. L2 weight decay prevents sparse LIMS over-fitting. Default &lambda;<sub>mb</sub>=10, &lambda;<sub>mono</sub>=1, &lambda;<sub>L2</sub>=0.01.</p>
+        <p style="margin-top:8px"><strong style="color:var(--text)">Graceful degradation.</strong> If PyTorch is missing, if training fails, or if PINN test metrics are more than 10% worse than OLS on either metric, the PINN is silently discarded and OLS corrections remain in effect. The active correction mode (&#x27;ols&#x27; or &#x27;pinn&#x27;) is always reported in calibration results.</p>
+      </div>
+
+      <!-- Section 3: Input Parameters -->
+      <div class="help-panel" id="help_p2" style="display:none">
+        <h3 style="color:var(--accent);font-size:14px;margin-bottom:12px">Section 3: Input Parameters</h3>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead><tr><th style="text-align:left;padding:6px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Parameter</th><th style="padding:6px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Typical Range</th><th style="padding:6px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">&uarr; Effect on Yield</th><th style="padding:6px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">&uarr; Effect on Colour</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>VR Density [kg/m&sup3;]</strong><br><span style="color:var(--text3)">Primary feed descriptor. Higher density = more aromatic/asphaltenic feed = lower DAO yield. API gravity is computed automatically from density.</span></td><td style="padding:6px 8px;text-align:center">980&ndash;1060</td><td style="padding:6px 8px;text-align:center;color:var(--red)">Decrease</td><td style="padding:6px 8px;text-align:center;color:var(--red)">Worse</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>CCR [wt%]</strong><br><span style="color:var(--text3)">Conradson Carbon Residue. Proxy for asphaltene+resin content. High CCR = harder to extract. Also sets DAO quality expectations.</span></td><td style="padding:6px 8px;text-align:center">15&ndash;35 wt%</td><td style="padding:6px 8px;text-align:center;color:var(--red)">Decrease</td><td style="padding:6px 8px;text-align:center;color:var(--red)">Worse</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>Viscosity @100&deg;C [cSt]</strong><br><span style="color:var(--text3)">Used for SARA estimation (MW distribution). Higher viscosity = higher average MW = lower yield at same conditions.</span></td><td style="padding:6px 8px;text-align:center">500&ndash;5000 cSt</td><td style="padding:6px 8px;text-align:center;color:var(--red)">Slight decrease</td><td style="padding:6px 8px;text-align:center;color:var(--amber)">Slight worse</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>Feed Temperature (after predilution mixing) [&deg;C]</strong><br><span style="color:var(--text3)">Temperature of VR+predilution propane mixture at the extractor feed nozzle (DCS reading). This is NOT the raw VR temperature &mdash; it is already cooled by the predilution propane.</span></td><td style="padding:6px 8px;text-align:center">70&ndash;95&deg;C</td><td style="padding:6px 8px;text-align:center;color:var(--green)">Decrease*</td><td style="padding:6px 8px;text-align:center;color:var(--green)">Better*</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>Propane Fresh Temp [&deg;C]</strong><br><span style="color:var(--text3)">Temperature of fresh solvent entering the bottom of the column. Lower temperature = denser propane = stronger solvent power in the bottom bed.</span></td><td style="padding:6px 8px;text-align:center">45&ndash;70&deg;C</td><td style="padding:6px 8px;text-align:center;color:var(--green)">Increase</td><td style="padding:6px 8px;text-align:center;color:var(--amber)">May worsen</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>S/O Ratio [vol/vol]</strong><br><span style="color:var(--text3)">Solvent-to-oil ratio. Primary yield lever &mdash; more solvent = more DAO. But higher S/O also carries more contamination into DAO, worsening colour and CCR above a threshold.</span></td><td style="padding:6px 8px;text-align:center">5&ndash;12</td><td style="padding:6px 8px;text-align:center;color:var(--green)">Increase</td><td style="padding:6px 8px;text-align:center;color:var(--red)">Worse above ~10</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>Predilution Fraction</strong><br><span style="color:var(--text3)">Fraction of total solvent injected at the feed entry point (below middle bed). This creates a pre-diluted, less-viscous feed that enters the column. Higher predilution = better asphalt rejection in the bottom bed = lower DAO yield but cleaner DAO.</span></td><td style="padding:6px 8px;text-align:center">0&ndash;0.4</td><td style="padding:6px 8px;text-align:center;color:var(--red)">Decrease</td><td style="padding:6px 8px;text-align:center;color:var(--green)">Better</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>Extractor Pressure [kg/cm&sup2;g]</strong><br><span style="color:var(--text3)">Higher pressure increases propane density &rarr; stronger solvent power &rarr; higher yield. Design pressure is ~40 kg/cm&sup2;g. Limited by vessel design rating (~44 kg/cm&sup2;g).</span></td><td style="padding:6px 8px;text-align:center">35&ndash;44 kg/cm&sup2;g</td><td style="padding:6px 8px;text-align:center;color:var(--green)">Increase</td><td style="padding:6px 8px;text-align:center;color:var(--amber)">Slight worse</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>LP Steam [kg/hr]</strong><br><span style="color:var(--text3)">Flow to heating coils located between middle and top beds. Steam heats the top bed, weakening the solvent there (less dense propane). Creates internal reflux: the partially-weakened extract from the top returns resin/asphaltene to the middle bed, improving DAO quality.</span></td><td style="padding:6px 8px;text-align:center">1000&ndash;5000 kg/hr</td><td style="padding:6px 8px;text-align:center;color:var(--red)">Slight decrease</td><td style="padding:6px 8px;text-align:center;color:var(--green)">Better</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text)"><strong>HETP [mm] (Expert)</strong><br><span style="color:var(--text3)">Height Equivalent to a Theoretical Plate for the structured packing. Default 2000 mm for structured packing. Divides each bed height to determine the equivalent number of theoretical stages per bed. Lower HETP = more stages = higher predicted yield. Typical: 1800&ndash;2500 mm.</span></td><td style="padding:6px 8px;text-align:center">1500&ndash;3000 mm</td><td style="padding:6px 8px;text-align:center;color:var(--green)">Increase (lower HETP)</td><td style="padding:6px 8px;text-align:center;color:var(--amber)">Slight worse</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:12px;font-size:10px;color:var(--text3)">* Lower temperature &rarr; denser propane &rarr; stronger solvent &rarr; higher yield, but quality improves (less contamination). The trade-off is that operating near propane saturation temperature risks flashing.</p>
+
+        <!-- Temperature Calculation subsection -->
+        <h4 style="color:var(--accent);font-size:12px;margin-top:18px;margin-bottom:8px">Temperature Calculation Button</h4>
+        <p>The <strong style="color:var(--text)">Calculate Temperatures</strong> button estimates the three extractor bed temperatures directly from your DCS inlet stream readings &mdash; without running a full simulation. It is intended for operators to verify temperature set-points before committing to a run.</p>
+        <p style="margin-top:8px"><strong style="color:var(--text)">Inputs used by the button:</strong></p>
+        <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:6px">
+          <thead><tr>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Input</th>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Source</th>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Effect</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)">Feed Temp (after predilution) [&deg;C]</td><td style="padding:5px 8px;color:var(--text3)">DCS — extractor feed nozzle TI</td><td style="padding:5px 8px;color:var(--text3)">Raises all three bed temperatures</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)">Propane Fresh Temp [&deg;C]</td><td style="padding:5px 8px;color:var(--text3)">DCS — propane injection TI</td><td style="padding:5px 8px;color:var(--text3)">Lowers bottom &amp; middle beds; colder propane = stronger solvent</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)">Steam to Coils [kg/hr]</td><td style="padding:5px 8px;color:var(--text3)">DCS — LP steam FIC</td><td style="padding:5px 8px;color:var(--text3)">Raises top bed temperature only (&Delta;T<sub>steam</sub>)</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)"><strong>LP Steam Pressure [kg/cm&sup2;g]</strong></td><td style="padding:5px 8px;color:var(--text3)">DCS — LP steam header PI</td><td style="padding:5px 8px;color:var(--text3)">Changes steam latent heat h<sub>fg</sub> → changes &Delta;T<sub>steam</sub></td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:14px;margin-bottom:6px">What is &Delta;T Steam?</h4>
+        <p>&Delta;T<sub>steam</sub> is the <strong style="color:var(--text)">temperature rise added by the LP steam heating coil in the top bed</strong>. It is the difference between T<sub>top</sub> and T<sub>middle</sub>.</p>
+        <p style="margin-top:6px"><strong style="color:var(--text)">Formula:</strong></p>
+        <pre style="background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:8px;font-size:10px;margin-top:4px">Q_steam  = steam_flow [kg/hr] &times; h_fg [kJ/kg] / 3600          &rarr; kW
+m_fluid  = 0.80 &times; (feed + solvent) [kg/hr] / 3600            &rarr; kg/s
+&Delta;T_steam = (Q_steam &times; effectiveness) / (m_fluid &times; Cp)    &rarr; &deg;C</pre>
+        <p style="margin-top:8px"><strong style="color:var(--text)">Worked example</strong> (design conditions: feed=90&deg;C, propane=54&deg;C, steam=2830 kg/hr, P=4.5 kg/cm&sup2;g):</p>
+        <pre style="background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:8px;font-size:10px;margin-top:4px">T_bottom = 54 + 0.35 &times; (90 &minus; 54)                 = 66.6 &deg;C
+T_middle = 66.6 + 0.55 &times; (90 &minus; 66.6)             = 79.5 &deg;C
+
+Steam at 4.5 kg/cm&sup2;g:  P_abs = 5.42 bar,  h_fg = 2083 kJ/kg
+Q_steam  = 2830 &times; 2083 / 3600                        = 1638 kW
+m_fluid  = 0.80 &times; (45000 + 360000) / 3600            = 90.0 kg/s
+&Delta;T_steam = (1638 &times; 0.60) / (90.0 &times; 2.3)              = 4.8 &deg;C  (capped at 20&deg;C)
+
+T_top    = 79.5 + 4.8                                  = 84.3 &deg;C</pre>
+        <p style="margin-top:6px"><strong style="color:var(--text)">Key insight about steam pressure:</strong> Higher pressure LP steam has <em>lower</em> latent heat h<sub>fg</sub> (because it is closer to saturation). So a drop in LP steam header pressure (e.g. 4.5 &rarr; 2.0 kg/cm&sup2;g) actually <em>increases</em> h<sub>fg</sub> from 2083 &rarr; 2139 kJ/kg and thus slightly increases &Delta;T<sub>steam</sub> for the same flow. This is counter-intuitive — monitor steam pressure on the DCS header PI.</p>
+        <p style="margin-top:6px"><strong style="color:var(--text)">Flash warning:</strong> If T<sub>top</sub> is within 3&deg;C of the propane saturation temperature (T<sub>sat</sub> &asymp; 87&deg;C at 40 kg/cm&sup2;g), a red warning is displayed. Operating above T<sub>sat</sub> risks propane vapour lock in the top bed, causing flooding and yield collapse.</p>
+      </div>
+
+      <!-- Section 4: Outputs -->
+      <div class="help-panel" id="help_p3" style="display:none">
+        <h3 style="color:var(--accent);font-size:14px;margin-bottom:12px">Section 4: Outputs and Predictions</h3>
+        <p><strong style="color:var(--text)">DAO Yield [wt%].</strong> Mass fraction of VR that reports to the DAO product, expressed as wt% of VR feed. Typical range: 15&ndash;35 wt% for propane solvent, 40&ndash;60 wt% for butane. Lube Bright Stock mode targets ~18 wt%, FCC Feed mode targets ~28&ndash;35 wt%. The simulator predicts the gross yield before any solvent entrainment corrections. Mass balance: DAO yield + Asphalt yield &asymp; 100 wt% (small deviations from stage iteration convergence).</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">DAO Viscosity [cSt @100&deg;C].</strong> Estimated from a correlation based on DAO average molecular weight, density, and SARA composition. The correlation is: visc = exp(a &times; ln(MW) + b/T + c &times; resin_fraction + d) where coefficients are calibrated to DAO data. Limitations: (1) Only valid for propane DAO &mdash; butane DAO has different characteristics, (2) actual plant viscosity depends on precise cut point and blending, (3) uncertainty &plusmn;20&ndash;30% is typical for this type of correlation.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">ASTM D1500 Colour.</strong> Predicted from asphaltene contamination level in the DAO and the resin fraction in SARA_DAO. Scale is 0 (water-white) to 8 (dark brown). Typical targets: lube DAO &lt;3.0, FCC DAO &lt;6.0. The colour is very sensitive to trace asphaltene carry-over. Colour increases sharply above an asphaltene contamination threshold (~0.5 wt% in SARA_DAO). Prediction uncertainty is high (&plusmn;1&ndash;2 ASTM units).</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">Asphaltene Contamination [wt%].</strong> Mass fraction of asphaltene-class components (by SARA classification) in the DAO product. This is the primary quality indicator for colour and CCR. Values &lt;0.1 wt% are excellent, 0.1&ndash;0.5 wt% is good for FCC, &gt;0.5 wt% indicates colour issues. Note: this is NOT the same as measured pentane-insolubles, which are typically lower.</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">Hydraulic Warnings.</strong> The simulator checks superficial velocity in each bed against limits for the structured packing: warning at 0.015 m/s, near-flooding at 0.020 m/s. The bottom bed (ID=3000mm) is the bottleneck due to its smaller diameter. Phase density difference below 0.10 g/cm&sup3; indicates risk of phase inversion. A propane saturation warning is issued if the top-bed temperature approaches the propane bubble point (T_sat &asymp; 87&deg;C at 40 bar).</p>
+        <p style="margin-top:10px"><strong style="color:var(--text)">Prediction Limitations.</strong> (1) All quality predictions (viscosity, colour, CCR) are correlations &mdash; not first-principles calculations. Calibration with plant data significantly improves accuracy. (2) The model does not predict DAO metals content (Ni, V). (3) Predilution effects on viscosity and pour point are not fully captured. (4) The model is isothermal at each stage &mdash; actual temperature profiles have radial gradients not captured here.</p>
+      </div>
+
+      <!-- Section 5: Calibration -->
+      <div class="help-panel" id="help_p4" style="display:none">
+        <h3 style="color:var(--accent);font-size:14px;margin-bottom:12px">Section 5: Calibration</h3>
+
+        <p><strong style="color:var(--text)">Overview — 4-phase calibration pipeline.</strong> Calibration adapts the physics engine to match real plant behaviour. You upload two Excel workbooks (DCS extractor data + LIMS lab data) and click <em>Run Calibration</em>. The pipeline runs four phases automatically, completing in approximately 5 minutes (OLS mode) or 10 minutes (PINN Hybrid mode).</p>
+
+        <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:10px">
+          <thead><tr>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Phase</th>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">What it calibrates</th>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Method</th>
+            <th style="padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Time</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)"><strong>Phase 0</strong> — Thermal</td><td style="padding:5px 8px;color:var(--text3)">T-profile model coefficients (T_bottom, T_middle, T_top from DCS inlets)</td><td style="padding:5px 8px;color:var(--text3)">OLS linear regression on hourly DCS temperature rows</td><td style="padding:5px 8px;text-align:center;color:var(--text3)">&lt;10 s</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)"><strong>Phase 1</strong> — Viscosity</td><td style="padding:5px 8px;color:var(--text3)">visc_slope + visc_bias (linear post-correction applied after physics)</td><td style="padding:5px 8px;color:var(--text3)">OLS on LIMS-anchored DCS rows where dao_visc_100 is measured</td><td style="padding:5px 8px;text-align:center;color:var(--text3)">&lt;30 s</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)"><strong>Phase 2</strong> — K_mult</td><td style="padding:5px 8px;color:var(--text3)">K_multiplier (primary yield lever) + optional C_T solubility correction</td><td style="padding:5px 8px;color:var(--text3)">scipy TRF optimiser minimising weighted yield + visc residuals</td><td style="padding:5px 8px;text-align:center;color:var(--text3)">3&ndash;5 min</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:rgba(88,166,255,0.04)"><td style="padding:5px 8px;color:var(--text)"><strong>Phase 3&ndash;4</strong> — PINN <em>(optional)</em></td><td style="padding:5px 8px;color:var(--text3)">Non-linear residual discrepancy in visc and yield across operating regimes</td><td style="padding:5px 8px;color:var(--text3)">PCA+GMM regime clustering then PINN training with physics-informed loss</td><td style="padding:5px 8px;text-align:center;color:var(--text3)">+5 min</td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:18px;margin-bottom:8px">Input Data — Two Excel Workbooks</h4>
+        <p>Calibration requires two xlsx workbooks exported from your plant historian and LIMS. No CSV files are used.</p>
+        <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:6px">
+          <thead><tr>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Workbook</th>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Content</th>
+            <th style="text-align:left;padding:5px 8px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Frequency</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)"><strong>DCS Workbook</strong><br><span style="color:var(--text3);font-size:10px">extractor_parameters.xlsx</span></td><td style="padding:5px 8px;color:var(--text3)">Feed flow (FC4101a/b), S/O ratio, temperature tags (TI41132, TI41133), steam FIC — one row per hour per train</td><td style="padding:5px 8px;color:var(--text3)">1 hour</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text)"><strong>LIMS Workbook</strong><br><span style="color:var(--text3);font-size:10px">lims.xlsx</span></td><td style="padding:5px 8px;color:var(--text3)">dao_visc_100 (primary calibration target), feed_density, feed_ccr, feed_visc_135 — sparse measurements</td><td style="padding:5px 8px;color:var(--text3)">~10&ndash;14 per year</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:8px;font-size:10px;color:var(--text3)"><strong>Data quality notes:</strong> Rows where both trains are offline (feed_flow &lt; 2 m&sup3;/hr) are dropped. Single-train operation is preserved. Feed density and CCR are forward-filled from sparse LIMS measurements (defaults: 1.028 g/cm&sup3;, 22.8 wt%). DAO viscosity is never forward-filled &mdash; each measurement is an independent calibration point. A 2-hour rolling steady-state filter (temperature std &lt; 1.5&deg;C) removes transient operation. LIMS viscosity reflects extractor conditions 3 hours before the sample (LIMS lag correction applied). Train split is chronological 80/20 &mdash; the most recent 20% is held out as a test set and is never used during optimisation.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:18px;margin-bottom:8px">Phase 0: Thermal Calibration</h4>
+        <p>Fits a linear temperature-profile model to predict T_bottom, T_middle, T_top from DCS inlet tags (feed temp, propane temp, steam flow, steam pressure). Runs on all steady-state DCS rows. This phase decouples the temperature uncertainty from the extraction physics calibration in subsequent phases. Calibrated T-profile coefficients are fixed for Phases 1&ndash;4.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:14px;margin-bottom:8px">Phase 1: OLS Viscosity Correction</h4>
+        <p>Fits two parameters: <strong>visc_slope</strong> and <strong>visc_bias</strong> applied as a post-correction after the physics engine: <code style="background:var(--bg4);padding:1px 4px;border-radius:3px;font-size:10px">corrected_visc = visc_slope &times; physics_visc + visc_bias</code>. Only LIMS-anchored rows (where a measured dao_visc_100 exists) are used. Viscosity residuals are computed on a log scale to avoid bias toward high-value outliers. A fallback to bias-only correction activates if the OLS correlation coefficient is below 0.15 (indicating the physics model viscosity trend does not match plant trend).</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:14px;margin-bottom:8px">Phase 2: K_multiplier Optimiser</h4>
+        <p>Minimises a weighted residual objective over all training rows using scipy <em>least_squares</em> (Trust Region Reflective method). The single primary free parameter is:</p>
+        <ul style="margin-top:6px;padding-left:18px;font-size:11px">
+          <li><strong>K_multiplier</strong> [0.70&ndash;1.40]: Scale factor on all K-values. Shifts DAO yield up or down while preserving the shape of the extraction curve. Re-anchored at K_ref=0.6448 corresponding to ~15.9 vol% DAO at design conditions (S/O=9, T_top=82&deg;C).</li>
+          <li><strong>DAO yield weight = 0.4</strong>, <strong>viscosity weight = 1.0</strong> in the combined objective. Viscosity receives higher weight because yield is calculated from mass balance and is typically more reliable than model yield.</li>
+        </ul>
+        <p style="margin-top:6px;font-size:10px;color:var(--text3)">Optional Path B extends the optimisation to also calibrate c_t_sat (C_T solubility correction): K &times;= exp(c_t &times; (1/T &minus; 1/T_ref)). c_t_aro = 0.70 &times; c_t_sat; resins and asphaltenes use fixed C_T = 0.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:14px;margin-bottom:8px">Calibration Parameters Reference</h4>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;margin-top:6px">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Parameter</th>
+            <th style="padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Bounds</th>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Controls</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">K_multiplier</td><td style="padding:4px 6px;text-align:center">0.70&ndash;1.40</td><td style="padding:4px 6px;color:var(--text3)">Primary yield level — shifts all K-values proportionally</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">visc_slope</td><td style="padding:4px 6px;text-align:center">0.1&ndash;10.0</td><td style="padding:4px 6px;color:var(--text3)">Linear scale on physics viscosity; corrects systematic model under/over-prediction</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">visc_bias</td><td style="padding:4px 6px;text-align:center">&minus;200&ndash;+200 cSt</td><td style="padding:4px 6px;color:var(--text3)">Constant offset; corrects absolute level after slope is set</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">delta_crit</td><td style="padding:4px 6px;text-align:center">0.5&ndash;15.0</td><td style="padding:4px 6px;color:var(--text3)">Solubility parameter spread — shifts resin/aromatic partitioning; affects viscosity and colour</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">E_murphree</td><td style="padding:4px 6px;text-align:center">0.10&ndash;1.0</td><td style="padding:4px 6px;color:var(--text3)">Stage efficiency — lower = fewer effective stages = lower yield, more contamination</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">C_entrain</td><td style="padding:4px 6px;text-align:center">0.001&ndash;0.1</td><td style="padding:4px 6px;color:var(--text3)">Asphalt droplet carry-over — primarily affects ASTM colour at low S/O</td></tr>
+            <tr><td style="padding:4px 6px;color:var(--text)">c_t_sat</td><td style="padding:4px 6px;text-align:center">&minus;5000&ndash;0</td><td style="padding:4px 6px;color:var(--text3)">Path B only: C_T temperature correction on K-values; c_t_aro = 0.7 &times; c_t_sat</td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:18px;margin-bottom:8px">Interpreting Calibration Results</h4>
+        <p>After calibration, parity plots and a metrics table are shown for the training set and the held-out test set. The correction mode badge shows which correction is active: <strong>OLS</strong> (Phases 0&ndash;2 only) or <strong>PINN</strong> (Phases 0&ndash;4).</p>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;margin-top:6px">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Metric</th>
+            <th style="padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Target</th>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Notes</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">Yield MAE</td><td style="padding:4px 6px;text-align:center">&le; 2 wt%</td><td style="padding:4px 6px;color:var(--text3)">Mean absolute error on held-out test set</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">Viscosity MAE</td><td style="padding:4px 6px;text-align:center">&le; 30 cSt</td><td style="padding:4px 6px;color:var(--text3)">LIMS-anchored rows only; log-scale residuals used during training</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">R&sup2; (viscosity)</td><td style="padding:4px 6px;text-align:center">&ge; 0.7</td><td style="padding:4px 6px;color:var(--text3)">Values below 0 indicate the model is worse than the mean — check feed quality data</td></tr>
+            <tr><td style="padding:4px 6px;color:var(--text)">Bias</td><td style="padding:4px 6px;text-align:center">|bias| &le; 1 wt%</td><td style="padding:4px 6px;color:var(--text3)">Bias &gt; 0: over-prediction; &lt; 0: under-prediction. Large bias → recalibrate</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:8px;font-size:10px;color:var(--text3)">If RMSE is much larger than MAE, outlier operating points exist in the data. If both train and test metrics are poor, the physics model may need a different K_multiplier range or the feed characterisation may need rechecking.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:14px;margin-bottom:8px">When to Recalibrate</h4>
+        <ul style="margin-top:4px;padding-left:18px;font-size:11px">
+          <li>Feed crude blend changes significantly (new VR density or CCR &gt;&plusmn;3%)</li>
+          <li>Sustained yield bias &gt; 3 wt% after stabilisation following a crude switch</li>
+          <li>Column internals replaced (new HETP — affects theoretical stage count)</li>
+          <li>Propane supply composition changes (propane purity drops &lt; 98%)</li>
+          <li>Extractor pressure set-point changed by more than 2 kg/cm&sup2;</li>
+        </ul>
+
+        <p style="margin-top:14px"><strong style="color:var(--text)">Version History:</strong><br>
+        <strong>V2.0</strong> (2026-04-01): Phase 2 PINN Hybrid Digital Twin &mdash; 4-phase calibration pipeline, PINN discrepancy networks (89/177 params), PCA+GMM regime detector, physics-informed composite loss (mass balance + monotonicity + L2), quality gate, graceful degradation to OLS. xlsx two-workbook workflow replaces CSV. Pre-calibration 7-stage diagnostic pipeline. ISO 23247 entity mapping.<br>
+        <strong>V1.10</strong>: Fixed stage propagation &mdash; N derived from bed geometry in all endpoints. Temperature synchronisation across panels. Removed stages=0 sentinel; added getBedParams().<br>
+        <strong>V1.9</strong>: Bed-driven stage count, temperature pre-calculation button, LP steam pressure input, DAO viscosity/colour calibration targets.<br>
+        <strong>V1.8</strong>: 3-bed dict structure, density-based feed inputs, PHCT dual-mode thermodynamics, per-bed hydraulics, operating margins, help system.<br>
+        <strong>V1.7</strong>: Density-based K-value model (&alpha;=3.0), m&sup3;/hr feed input, T_feed_mixed thermal model.<br>
+        <strong>V1.6</strong>: Alpha density model, predilution sweep, stage efficiency, Murphree model.<br>
+        <strong>V1.5</strong>: Countercurrent extractor, asphalt-into-DAO entrainment.</p>
+      </div>
+
+      <!-- Section 6: PINN & Hybrid Mode -->
+      <div class="help-panel" id="help_p5" style="display:none">
+        <h3 style="color:var(--accent);font-size:14px;margin-bottom:12px">Section 6: PINN &amp; Hybrid Digital Twin Mode</h3>
+
+        <p><strong style="color:var(--text)">What is PINN Hybrid mode?</strong> When you check <em>Enable PINN Hybrid Mode</em> before running calibration, the pipeline adds Phases 3 and 4 after the standard OLS calibration. A Physics-Informed Neural Network (PINN) learns the systematic discrepancy between the physics engine predictions and actual plant measurements, capturing non-linear regime-dependent errors that the linear OLS correction cannot.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:16px;margin-bottom:8px">Phase 3: Operating Regime Detection</h4>
+        <p>The plant operates in distinct regimes that affect extraction behaviour beyond what the single-point physics model captures. Examples: lube-grade operation (tight quality, S/O 6&ndash;8), FCC-grade operation (yield maximisation, S/O 9&ndash;12), winter crude (high CCR, low viscosity feed), summer crude (lower CCR). A PCA + Gaussian Mixture Model (GMM) automatically identifies these regimes from the DCS telemetry.</p>
+        <p style="margin-top:8px"><strong style="color:var(--text)">How regime detection works:</strong></p>
+        <ol style="margin-top:4px;padding-left:18px;font-size:11px;line-height:1.8">
+          <li><strong>Feature set:</strong> so_ratio (trains A &amp; B), t_top, t_bot, feed_flow, propane_temp &mdash; 9 DCS tags per hour.</li>
+          <li><strong>StandardScaler:</strong> normalises each feature to zero mean, unit variance. This prevents high-flow tags from dominating low-temperature tags.</li>
+          <li><strong>PCA:</strong> reduces 9 dimensions to the fewest components that explain 95% of variance (typically 4&ndash;5 components). This removes correlated noise between tags.</li>
+          <li><strong>GMM with BIC selection:</strong> fits Gaussian Mixture Models for 2, 3, 4, and 5 clusters; selects the number that minimises the Bayesian Information Criterion (BIC). BIC penalises model complexity, preventing over-clustering on noisy data.</li>
+          <li><strong>Cluster ID output:</strong> each hourly DCS row gets a soft probability over all clusters plus a hard cluster assignment. The active cluster ID is one-hot encoded as an additional input to the PINN.</li>
+        </ol>
+        <p style="margin-top:8px;font-size:10px;color:var(--text3)">Why PCA+GMM instead of SDAE+FCM? The 9 DCS features are mostly linearly correlated (temperature tags co-move with S/O ratio). PCA captures 95% of variance in 4 components trivially. GMM provides the same soft memberships as FCM but with proper model selection via BIC (no manual cluster count needed). SDAE and FCM add training complexity and hyperparameter tuning for no measurable gain on this dataset size.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:16px;margin-bottom:8px">Phase 4: PINN Training</h4>
+        <p><strong style="color:var(--text)">Forward pass cache.</strong> Before training, the calibrated physics engine (with K_mult from Phase 2) is run on all training rows in parallel (joblib multiprocessing). This produces (physics_visc, physics_yield) for each row. The cache is computed once &mdash; the physics engine is never called during PINN gradient computation, keeping training fast.</p>
+        <p style="margin-top:8px"><strong style="color:var(--text)">PINN features (10 inputs):</strong></p>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;margin-top:4px">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Feature</th>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Description</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">so_ratio_avg</td><td style="padding:4px 6px;color:var(--text3)">Average S/O ratio across active trains — primary operating lever</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">t_top_avg</td><td style="padding:4px 6px;color:var(--text3)">Average top-bed temperature — dominant yield lever via propane density</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">t_bot_avg</td><td style="padding:4px 6px;color:var(--text3)">Average bottom-bed temperature — affects asphalt rejection zone</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">feed_density</td><td style="padding:4px 6px;color:var(--text3)">VR feed density — primary feed quality descriptor</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">feed_ccr</td><td style="padding:4px 6px;color:var(--text3)">Conradson Carbon Residue — proxy for asphaltene+resin fraction</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">delta_t</td><td style="padding:4px 6px;color:var(--text3)">T_top &minus; T_bot — temperature gradient across the column (internal reflux strength)</td></tr>
+            <tr><td style="padding:4px 6px;color:var(--text)">cluster_onehot[0..n&minus;1]</td><td style="padding:4px 6px;color:var(--text3)">One-hot encoded operating regime ID (2&ndash;5 elements depending on GMM selection)</td></tr>
+          </tbody>
+        </table>
+
+        <p style="margin-top:10px"><strong style="color:var(--text)">PINN targets:</strong> &delta;<sub>visc</sub> = (measured_visc / physics_visc) &minus; 1 and &delta;<sub>yield</sub> = (measured_yield / physics_yield) &minus; 1. The networks learn these fractional corrections, then inference applies: <code style="background:var(--bg4);padding:1px 4px;border-radius:3px;font-size:10px">corrected = physics &times; (1 + &delta;)</code>.</p>
+
+        <p style="margin-top:10px"><strong style="color:var(--text)">Physics-informed loss function:</strong></p>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;margin-top:4px">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Loss term</th>
+            <th style="padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Weight (&lambda;)</th>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Physics constraint enforced</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">L<sub>data,visc</sub></td><td style="padding:4px 6px;text-align:center">1.0</td><td style="padding:4px 6px;color:var(--text3)">MSE on log-scale viscosity (LIMS-anchored rows only)</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">L<sub>data,yield</sub></td><td style="padding:4px 6px;text-align:center">1.0</td><td style="padding:4px 6px;color:var(--text3)">MSE normalised by yield standard deviation (all steady-state rows)</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">L<sub>mass_balance</sub></td><td style="padding:4px 6px;text-align:center">10.0</td><td style="padding:4px 6px;color:var(--text3)">Penalises corrected yield outside [0%, 100%] and |&delta;| exceeding clamp bounds</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">L<sub>monotonicity</sub></td><td style="padding:4px 6px;text-align:center">1.0</td><td style="padding:4px 6px;color:var(--text3)">Penalises yield correction that would make higher S/O give lower corrected yield (physical violation)</td></tr>
+            <tr><td style="padding:4px 6px;color:var(--text)">L<sub>weight_decay</sub></td><td style="padding:4px 6px;text-align:center">0.01</td><td style="padding:4px 6px;color:var(--text3)">L2 regularisation — prevents memorisation of the sparse LIMS viscosity points</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:6px;font-size:10px;color:var(--text3)">Training uses Adam optimiser (lr=0.001, ReduceLROnPlateau scheduler), early stopping with patience=20 epochs on the chronological validation split (most recent 20% of training data). Maximum 200 epochs; typical convergence at 50&ndash;100 epochs.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:16px;margin-bottom:8px">Quality Gate &amp; Deployment Decision</h4>
+        <p>After training, the PINN is evaluated on the held-out chronological test set (most recent 20% of the full dataset). The quality gate compares PINN test MAE against OLS test MAE for both viscosity and yield:</p>
+        <ul style="margin-top:6px;padding-left:18px;font-size:11px">
+          <li><strong>PINN deployed</strong> (correction_mode = 'pinn'): PINN MAE &le; OLS MAE &times; 1.10 for both metrics. The PINN improves or at least does not degrade test performance by more than 10%.</li>
+          <li><strong>PINN discarded</strong> (correction_mode = 'ols'): PINN MAE &gt; OLS MAE &times; 1.10 on either metric. OLS corrections from Phase 1&ndash;2 remain in effect. This result is shown with a warning in the PINN status panel.</li>
+        </ul>
+        <p style="margin-top:8px;font-size:10px;color:var(--text3)">The quality gate exists because with only ~10&ndash;14 LIMS viscosity points per year, even a tiny network can show apparent training improvement while over-fitting to the training split. The chronological test set is the definitive out-of-sample check. If the gate fails, it means the current training data is insufficient for PINN generalisation &mdash; collect more LIMS measurements or wait for a seasonal crude change that adds a new operating point.</p>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:16px;margin-bottom:8px">Graceful Degradation Hierarchy</h4>
+        <ol style="margin-top:4px;padding-left:18px;font-size:11px;line-height:1.9">
+          <li><strong>PyTorch not installed:</strong> PINN checkbox is ignored; calibration completes with OLS only. No error shown to user; correction_mode = 'ols' in output JSON.</li>
+          <li><strong>Fewer than 5 LIMS visc rows:</strong> PINN training skipped (insufficient data for chronological validation split); OLS used.</li>
+          <li><strong>PINN training exception:</strong> Error is logged to server console; OLS correction is preserved; result JSON includes pinn_result.error key.</li>
+          <li><strong>Quality gate failure:</strong> PINN trained successfully but test metrics worse; PINN checkpoints saved to disk for inspection but OLS applied at inference.</li>
+          <li><strong>PINN inference exception at runtime:</strong> simulator_bridge.py catches the exception, sets correction_mode = 'ols_fallback', and returns the OLS-corrected result unchanged.</li>
+        </ol>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:16px;margin-bottom:8px">Underlying Design Principles</h4>
+        <ul style="margin-top:4px;padding-left:18px;font-size:11px;line-height:1.9">
+          <li><strong>Physics-first:</strong> The frozen physics engine (Hunter-Nash extractor, PHCT EOS, Murphree efficiency) is never modified by training. The PINN only adds a bounded multiplicative correction on top. This ensures all fundamental thermodynamic constraints are always respected.</li>
+          <li><strong>Sparse-data regularisation:</strong> Every architectural choice (89-param visc net, physics loss penalties, L2 decay, early stopping, quality gate) exists to prevent overfitting to the sparse LIMS dataset. Adding more parameters to the PINN would not improve accuracy &mdash; it would increase overfitting risk.</li>
+          <li><strong>Chronological split invariant:</strong> The 80/20 train/test split is always chronological, never random. Shuffling a time-series produces artificially optimistic validation metrics because training points adjacent in time to test points leak correlated information. The chronological split measures true out-of-sample generalisation.</li>
+          <li><strong>Interpretable corrections:</strong> The correction magnitudes &delta;<sub>visc</sub> and &delta;<sub>yield</sub> are bounded and reported in calibration output. An unexpectedly large correction (|&delta;| &gt; 0.3) is a diagnostic signal that the physics model needs re-anchoring, not just a PINN correction.</li>
+          <li><strong>Reproducible deployment:</strong> PINN checkpoints (weights + normaliser + regime detector) are saved to calibration_profiles/ alongside the OLS profile JSON. The same checkpoint is loaded at every inference call, giving deterministic predictions regardless of runtime state.</li>
+        </ul>
+
+        <h4 style="color:var(--accent);font-size:12px;margin-top:16px;margin-bottom:8px">ISO 23247 Digital Twin Framework</h4>
+        <p>The simulator is structured according to ISO 23247:2021 (Automation systems and integration &mdash; Digital twin framework for manufacturing). The four entity types and their corresponding modules are:</p>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;margin-top:6px">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">ISO 23247 Entity</th>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Role</th>
+            <th style="text-align:left;padding:4px 6px;background:var(--bg3);color:var(--text2);border-bottom:1px solid var(--border)">Modules</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">Observable Manufacturing Element (OME)</td><td style="padding:4px 6px;color:var(--text3)">Physical extractors, sensors, measured states</td><td style="padding:4px 6px;color:var(--text3)">plant_data_loader.py</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">Device Communication Entity (DCE)</td><td style="padding:4px 6px;color:var(--text3)">Data ingestion, ETL, operating mode detection</td><td style="padding:4px 6px;color:var(--text3)">thermal_calibration.py, regime_detector.py</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;color:var(--text)">Digital Twin Entity (DTE)</td><td style="padding:4px 6px;color:var(--text3)">Physics engine, discrepancy learning, calibration</td><td style="padding:4px 6px;color:var(--text3)">lle_solver.py, hunter_nash_extractor.py, quality_model.py, simulator_bridge.py, pinn_network.py, pinn_trainer.py, calibration_engine.py</td></tr>
+            <tr><td style="padding:4px 6px;color:var(--text)">User Entity (UE)</td><td style="padding:4px 6px;color:var(--text3)">Operator interfaces, API endpoints, reporting</td><td style="padding:4px 6px;color:var(--text3)">run_simulation.py, diagnostic_pipeline.py, ui_template.html</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:6px;font-size:10px;color:var(--text3)">Full entity mapping is documented in iso23247_manifest.json in the project root.</p>
+      </div>
+
+      <!-- Section 7: About the Creator -->
+      <div class="help-panel" id="help_p6" style="display:none">
+        <h3 style="color:var(--accent);font-size:14px;margin-bottom:12px">About the Creator</h3>
+        <div style="display:flex;gap:24px;flex-wrap:wrap">
+          <div style="flex:1;min-width:220px">
+            <p style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">Piyush Paradkar</p>
+            <p style="color:var(--text2);margin-bottom:2px">Hindustan Petroleum Corporation Limited</p>
+            <p style="color:var(--text3);font-size:11px;margin-bottom:12px">B.Tech., NIT Warangal</p>
+            <p style="color:var(--text2)">Working in Lube Refinery at Mumbai Refinery, Operations since 2017.</p>
+          </div>
+          <div style="flex:1;min-width:220px">
+            <p style="color:var(--text);font-weight:600;margin-bottom:6px">Experience includes:</p>
+            <ul style="padding-left:16px;color:var(--text2);line-height:1.8">
+              <li>Solvent Extraction</li>
+              <li>Solvent Dewaxing</li>
+              <li>Solvent DeAsphalting</li>
+              <li>Selective Hydro-Dewaxing (MSDW)</li>
+            </ul>
+            <p style="color:var(--text2);margin-top:10px">Interested in understanding plant behavior through first-principles simulation, machine learning and AI.</p>
+            <p style="color:var(--text2);margin-top:8px">Focused on solving real-world refinery challenges using modeling and data-driven approaches.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="sidebar">
+
+  <!-- Feed -->
+  <div class="s-panel">
+    <div class="s-panel-hdr">Feed</div>
+    <div class="s-panel-body">
+      <div>
+        <label class="slabel">Vacuum Residue Feed</label>
+        <select id="feed" onchange="updateFeedLabel()">
+          <option value="basra_kuwait_mix">Heavy VR Blend A (Design)</option>
+          <option value="basra_light">Heavy VR Blend B (Check)</option>
+          <option value="custom">Custom (enter below)</option>
+        </select>
+      </div>
+      <div id="custom_feed_panel" style="display:none">
+  <label class="slabel">VR Density [kg/m³]</label>
+  <div class="slider-row">
+    <input type="range" id="cf_density" min="980" max="1080" step="1" value="1028" oninput="sync('cf_density','cf_density_n',this.value);updateAPIDisplay()">
+    <input type="number" id="cf_density_n" class="snum" value="1028" step="1" oninput="sync('cf_density_n','cf_density',this.value);updateAPIDisplay()">
+  </div>
+  <label class="slabel" style="margin-top:5px">CCR [wt%]</label>
+  <div class="slider-row">
+    <input type="range" id="cf_ccr" min="10" max="40" step="0.5" value="22.8" oninput="sync('cf_ccr','cf_ccr_n',this.value)">
+    <input type="number" id="cf_ccr_n" class="snum" value="22.8" step="0.5" oninput="sync('cf_ccr_n','cf_ccr',this.value)">
+  </div>
+  <label class="slabel" style="margin-top:5px">Viscosity @100°C [cSt]</label>
+  <div class="slider-row">
+    <input type="range" id="cf_visc" min="200" max="5000" step="50" value="1621" oninput="sync('cf_visc','cf_visc_n',this.value)">
+    <input type="number" id="cf_visc_n" class="snum" value="1621" step="50" oninput="sync('cf_visc_n','cf_visc',this.value)">
+  </div>
+  <div style="font-size:10px;color:var(--text3);margin-top:4px">
+    API Gravity: <strong id="cf_api_display" style="color:var(--accent)">6.1</strong> <span style="color:var(--text3)">(computed from density)</span>
+  </div>
+  <button onclick="charFeed()" class="btn-sm" style="width:100%;margin-top:8px">Characterise Feed</button>
+  <div id="cf_result" style="font-size:10px;color:var(--text2);margin-top:4px"></div>
+</div>
+      <div>
+        <label class="slabel">Feed Flow Rate [m&#179;/hr]</label>
+        <div class="slider-row">
+          <input type="range" id="feed_flow_m3hr" min="38" max="130" step="0.5" value="86.1" oninput="sync('feed_flow_m3hr','feed_flow_n',this.value);updateFeedFlowHint()">
+          <input type="number" id="feed_flow_n" class="snum" value="86.1" step="0.5" oninput="sync('feed_flow_n','feed_flow_m3hr',this.value);updateFeedFlowHint()">
+        </div>
+        <div id="feed_flow_kghr_hint" style="font-size:10px;color:var(--text3);margin-top:3px">&#8776; 88547 kg/hr</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Solvent -->
+  <div class="s-panel">
+    <div class="s-panel-hdr">Solvent</div>
+    <div class="s-panel-body">
+      <div>
+        <label class="slabel">Solvent Type</label>
+        <select id="solvent">
+          <option value="propane">Propane (C3)</option>
+          <option value="butane">Butane (C4)</option>
+        </select>
+      </div>
+      <div>
+        <label class="slabel" id="so_label">S/O Ratio [m&#179;/m&#179; vol]</label>
+        <div class="slider-row">
+          <input type="range" id="so" min="3" max="14" step="0.5" value="8" oninput="sync('so','so_n',this.value)">
+          <input type="number" id="so_n" class="snum" value="8" step="0.5" oninput="sync('so_n','so',this.value)">
+        </div>
+        <div class="radio-row" style="margin-top:4px">
+          <label><input type="radio" name="so_mode" value="vol" checked onchange="toggleSOMode()">Vol</label>
+          <label><input type="radio" name="so_mode" value="mass" onchange="toggleSOMode()">Mass</label>
+        </div>
+      </div>
+      <div>
+        <label class="slabel">Predilution Fraction</label>
+        <div class="slider-row">
+          <input type="range" id="predilution_frac" min="0" max="0.5" step="0.01" value="0.226" oninput="sync('predilution_frac','pred_n',this.value)">
+          <input type="number" id="pred_n" class="snum" value="0.226" step="0.01" oninput="sync('pred_n','predilution_frac',this.value)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Temperature -->
+  <div class="s-panel">
+    <div class="s-panel-hdr">Temperature</div>
+    <div class="s-panel-body">
+      <div class="radio-row">
+        <label><input type="radio" name="therm_mode" value="inlet" checked onchange="toggleThermalMode()">Inlet Streams</label>
+        <label><input type="radio" name="therm_mode" value="direct" onchange="toggleThermalMode()">Direct Beds</label>
+      </div>
+      <div id="inlet_T_panel">
+        <label class="slabel" title="Temperature of VR + predilution propane at extractor inlet">Feed Temp (after predilution) [&deg;C]</label>
+        <div class="slider-row">
+          <input type="range" id="T_feed_mixed" min="70" max="120" step="1" value="90" oninput="sync('T_feed_mixed','T_feed_n',this.value);markTempsStale()">
+          <input type="number" id="T_feed_n" class="snum" value="90" step="1" oninput="sync('T_feed_n','T_feed_mixed',this.value);markTempsStale()">
+        </div>
+        <label class="slabel" style="margin-top:5px">Propane Fresh Temp [&deg;C]</label>
+        <div class="slider-row">
+          <input type="range" id="T_propane_fresh" min="40" max="80" step="1" value="54" oninput="sync('T_propane_fresh','T_prop_n',this.value);markTempsStale()">
+          <input type="number" id="T_prop_n" class="snum" value="54" step="1" oninput="sync('T_prop_n','T_propane_fresh',this.value);markTempsStale()">
+        </div>
+        <label class="slabel" style="margin-top:5px">Steam to Coils [kg/hr]</label>
+        <div class="slider-row">
+          <input type="range" id="steam_flow_kg_hr" min="0" max="5000" step="100" value="2830" oninput="sync('steam_flow_kg_hr','steam_n',this.value);markTempsStale()">
+          <input type="number" id="steam_n" class="snum" value="2830" step="100" oninput="sync('steam_n','steam_flow_kg_hr',this.value);markTempsStale()">
+        </div>
+        <!-- LP Steam Pressure — number input only, no slider -->
+        <label class="slabel" style="margin-top:5px" title="Gauge pressure of LP steam supplied to extractor heating coils">LP Steam Pressure [kg/cm&sup2;g]</label>
+        <input type="number" id="lp_steam_pressure" class="snum" value="4.5" min="0.5" max="20" step="0.1" style="width:80px" oninput="markTempsStale()">
+
+        <!-- Calculate Temperatures button -->
+        <button id="calc_temp_btn" onclick="calcTemps()"
+          style="margin-top:10px;width:100%;padding:7px 0;background:var(--accent2,#1a6b9a);color:#fff;border:none;border-radius:var(--rad);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.4px"
+          title="Estimate bed temperatures from inlet conditions — no full simulation">
+          &#x1F321; Calculate Temperatures
+        </button>
+
+        <!-- Temperature result display -->
+        <div id="temp_calc_result" style="display:none;margin-top:8px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rad);padding:8px 10px">
+          <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:6px;text-transform:uppercase">Estimated Bed Temperatures</div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <tr>
+              <td style="color:var(--text3);padding:2px 0">Bottom</td>
+              <td style="text-align:right"><span id="t_calc_bottom" style="color:var(--accent);font-weight:700">—</span> &deg;C</td>
+            </tr>
+            <tr>
+              <td style="color:var(--text3);padding:2px 0">Middle</td>
+              <td style="text-align:right"><span id="t_calc_middle" style="color:var(--accent);font-weight:700">—</span> &deg;C</td>
+            </tr>
+            <tr>
+              <td style="color:var(--text3);padding:2px 0">Top</td>
+              <td style="text-align:right"><span id="t_calc_top" style="color:var(--accent);font-weight:700">—</span> &deg;C</td>
+            </tr>
+            <tr>
+              <td style="color:var(--text3);padding:2px 0">&Delta;T steam</td>
+              <td style="text-align:right"><span id="t_calc_dT" style="color:var(--text2)">—</span> &deg;C</td>
+            </tr>
+            <tr>
+              <td style="color:var(--text3);padding:2px 0">Steam T<sub>sat</sub></td>
+              <td style="text-align:right"><span id="t_calc_tsat" style="color:var(--text2)">—</span> &deg;C</td>
+            </tr>
+          </table>
+          <div id="t_calc_warn" style="display:none;margin-top:6px;font-size:10px;color:#e55;background:rgba(220,60,60,.08);border:1px solid rgba(220,60,60,.25);border-radius:3px;padding:4px 6px"></div>
+        </div>
+        <div id="thermal_hint" style="font-size:10px;color:var(--text3);margin-top:5px;display:none">Run simulation to see estimated bed temperatures</div>
+      </div>
+      <div id="direct_T_panel" style="display:none">
+        <label class="slabel">T Bottom [&deg;C]</label>
+        <div class="slider-row">
+          <input type="range" id="T_bottom" min="50" max="95" step="0.5" value="72" oninput="sync('T_bottom','T_bot_n',this.value);onBedTempEdit()">
+          <input type="number" id="T_bot_n" class="snum" value="72" step="0.5" oninput="sync('T_bot_n','T_bottom',this.value);onBedTempEdit()">
+        </div>
+        <label class="slabel" style="margin-top:5px">T Top [&deg;C]</label>
+        <div class="slider-row">
+          <input type="range" id="T_top" min="55" max="95" step="0.5" value="82" oninput="sync('T_top','T_top_n',this.value);onBedTempEdit()">
+          <input type="number" id="T_top_n" class="snum" value="82" step="0.5" oninput="sync('T_top_n','T_top',this.value);onBedTempEdit()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operating Conditions -->
+  <div class="s-panel">
+    <div class="s-panel-hdr">Operating Conditions</div>
+    <div class="s-panel-body">
+      <div>
+        <label class="slabel">Pressure [kg/cm&#178;g]</label>
+        <div class="slider-row">
+          <input type="range" id="P_kgcm2" min="30" max="55" step="0.5" value="40" oninput="sync('P_kgcm2','P_n',this.value)">
+          <input type="number" id="P_n" class="snum" value="40" step="0.5" oninput="sync('P_n','P_kgcm2',this.value)">
+        </div>
+      </div>
+      <input type="hidden" id="stages" value="4">
+      <div>
+        <label class="slabel">Extractors in Parallel</label>
+        <div class="radio-row">
+          <label><input type="radio" name="n_ext" value="1">1 extractor</label>
+          <label><input type="radio" name="n_ext" value="2" checked>2 (A+B)</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thermo Model -->
+  <div class="s-panel">
+    <div class="s-panel-hdr">Thermodynamic Model</div>
+    <div class="s-panel-body">
+      <div class="radio-row">
+        <label><input type="radio" name="thermo_model" value="kvalue" checked>K-Value (fast)</label>
+        <label><input type="radio" name="thermo_model" value="phct">PHCT EOS (rigorous)</label>
+      </div>
+      <div id="phct_note" style="display:none;font-size:10px;color:var(--amber);margin-top:4px">&#9888; PHCT mode is slower (~10s). Please wait after pressing Run.</div>
+    </div>
+  </div>
+
+  <!-- Expert: Model params -->
+  <div class="s-panel expert-only">
+    <div class="s-panel-hdr">Model Parameters</div>
+    <div class="s-panel-body">
+      <div><label class="slabel">Stage Efficiency</label>
+        <div class="slider-row"><input type="range" id="E" min="0.3" max="1.0" step="0.01" value="0.70" oninput="sync('E','E_n',this.value)"><input type="number" id="E_n" class="snum" value="0.70" step="0.01" oninput="sync('E_n','E',this.value)"></div>
+      </div>
+      <div><label class="slabel">K Multiplier</label>
+        <div class="slider-row"><input type="range" id="K_multiplier" min="0.1" max="3.5" step="0.01" value="1.0" oninput="sync('K_multiplier','Km_n',this.value)"><input type="number" id="Km_n" class="snum" value="1.0" step="0.01" oninput="sync('Km_n','K_multiplier',this.value)"></div>
+      </div>
+      <div><label class="slabel">Delta Crit</label>
+        <div class="slider-row"><input type="range" id="delta_crit" min="0.5" max="8.0" step="0.1" value="2.5" oninput="sync('delta_crit','dc_n',this.value)"><input type="number" id="dc_n" class="snum" value="2.5" step="0.1" oninput="sync('dc_n','delta_crit',this.value)"></div>
+      </div>
+      <div><label class="slabel">Alpha Density</label>
+        <div class="slider-row"><input type="range" id="alpha_density" min="1.0" max="6.0" step="0.1" value="3.0" oninput="sync('alpha_density','ad_n',this.value)"><input type="number" id="ad_n" class="snum" value="3.0" step="0.1" oninput="sync('ad_n','alpha_density',this.value)"></div>
+      </div>
+      <div><label class="slabel">Entrainment C</label>
+        <div class="slider-row"><input type="range" id="C_entrain" min="0.001" max="0.1" step="0.001" value="0.015" oninput="sync('C_entrain','Ce_n',this.value)"><input type="number" id="Ce_n" class="snum" value="0.015" step="0.001" oninput="sync('Ce_n','C_entrain',this.value)"></div>
+      </div>
+      <div><label class="slabel">Precip. Rate k</label>
+        <div class="slider-row"><input type="range" id="k_precip" min="0.05" max="5.0" step="0.05" value="0.5" oninput="sync('k_precip','kp_n',this.value)"><input type="number" id="kp_n" class="snum" value="0.5" step="0.05" oninput="sync('kp_n','k_precip',this.value)"></div>
+      </div>
+      <div><label class="slabel">Tau [min]</label>
+        <div class="slider-row"><input type="range" id="tau" min="1" max="60" step="1" value="10" oninput="sync('tau','tau_n',this.value)"><input type="number" id="tau_n" class="snum" value="10" step="1" oninput="sync('tau_n','tau',this.value)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expert: Bed Configuration -->
+  <div class="s-panel expert-only">
+    <div class="s-panel-hdr">Bed Configuration</div>
+    <div class="s-panel-body">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:3px 4px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Bed</th>
+            <th style="text-align:right;padding:3px 4px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Height<br><span style="font-weight:400">[mm]</span></th>
+            <th style="text-align:right;padding:3px 4px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Diameter<br><span style="font-weight:400">[mm]</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:5px 4px;color:var(--text2);font-weight:600">Top<br><span style="font-weight:400;font-size:10px;color:var(--text3)">polishing</span></td>
+            <td style="padding:3px 4px;text-align:right"><input type="number" id="top_h" class="snum" value="1200" min="600" max="3000" step="100" style="width:62px" oninput="updateBedSummary()"></td>
+            <td style="padding:3px 4px;text-align:right"><input type="number" id="top_d" class="snum" value="4300" min="2000" max="6000" step="100" style="width:62px"></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:5px 4px;color:var(--text2);font-weight:600">Mid<br><span style="font-weight:400;font-size:10px;color:var(--text3)">extraction</span></td>
+            <td style="padding:3px 4px;text-align:right"><input type="number" id="mid_h" class="snum" value="1200" min="600" max="3000" step="100" style="width:62px" oninput="updateBedSummary()"></td>
+            <td style="padding:3px 4px;text-align:right"><input type="number" id="mid_d" class="snum" value="4300" min="2000" max="6000" step="100" style="width:62px"></td>
+          </tr>
+          <tr>
+            <td style="padding:5px 4px;color:var(--text2);font-weight:600">Bot<br><span style="font-weight:400;font-size:10px;color:var(--text3)">rejection</span></td>
+            <td style="padding:3px 4px;text-align:right"><input type="number" id="bot_h" class="snum" value="3600" min="1000" max="6000" step="100" style="width:62px" oninput="updateBedSummary()"></td>
+            <td style="padding:3px 4px;text-align:right"><input type="number" id="bot_d" class="snum" value="3000" min="2000" max="5000" step="100" style="width:62px"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:10px;color:var(--text3);white-space:nowrap">HETP [mm]</span>
+        <input type="number" id="HETP_mm" class="snum" value="2000" min="500" max="4000" step="100" style="width:66px" oninput="updateBedSummary()">
+      </div>
+      <div id="bed_summary" style="font-size:10px;color:var(--accent);background:var(--bg4);border-radius:3px;padding:4px 6px;margin-bottom:8px"></div>
+      <div><label class="slabel">Bottom T Blend</label>
+        <div class="slider-row"><input type="range" id="bottom_T_blend" min="0.1" max="0.7" step="0.01" value="0.35" oninput="sync('bottom_T_blend','btb_n',this.value)"><input type="number" id="btb_n" class="snum" value="0.35" step="0.01" oninput="sync('btb_n','bottom_T_blend',this.value)"></div>
+      </div>
+      <div><label class="slabel">Middle T Blend</label>
+        <div class="slider-row"><input type="range" id="middle_T_blend" min="0.1" max="0.9" step="0.01" value="0.55" oninput="sync('middle_T_blend','mtb_n',this.value)"><input type="number" id="mtb_n" class="snum" value="0.55" step="0.01" oninput="sync('mtb_n','middle_T_blend',this.value)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expert: Downstream Corrections -->
+  <div class="s-panel expert-only">
+    <div class="s-panel-hdr">Downstream Corrections</div>
+    <div class="s-panel-body">
+      <div style="font-size:10px;color:var(--text3)">Post-extractor adjustments for flash drum and residual solvent. Default: OFF.</div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="enable_downstream" onchange="document.getElementById('ds_options').style.display=this.checked?'flex':'none'">
+        <span style="font-size:11px;color:var(--text)">Enable Downstream Corrections</span>
+      </label>
+      <div id="ds_options" style="display:none;flex-direction:column;gap:6px;padding-left:10px;border-left:2px solid var(--border2)">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="enable_flash_precip" checked>
+          <span style="font-size:11px;color:var(--text2)">Flash Precipitation</span>
+        </label>
+        <div style="display:flex;align-items:center;gap:6px;padding-left:18px">
+          <span style="font-size:10px;color:var(--text3)">Flash drum P [bar]:</span>
+          <input type="number" id="flash_P_bar" class="snum" value="5" min="1" max="20" step="0.5" style="width:54px">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="enable_residual_solvent" checked>
+          <span style="font-size:11px;color:var(--text2)">Residual Solvent</span>
+        </label>
+        <div style="display:flex;align-items:center;gap:6px;padding-left:18px">
+          <span style="font-size:10px;color:var(--text3)">Residual C3 [wt%]:</span>
+          <input type="number" id="residual_solvent_pct" class="snum" value="0.5" min="0" max="2" step="0.1" style="width:54px">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ══════════ CONTENT ══════════ -->
+<main class="content">
+
+  <!-- Unit Health Strip -->
+  <div class="health-strip">
+    <div class="health-card" id="hc_dao">
+      <div class="hc-label">DAO Yield</div>
+      <div class="hc-val" id="hc_dao_val">&#8212;</div>
+      <div class="hc-unit">wt%</div>
+      <div class="hc-status" id="hc_dao_st">PENDING</div>
+      <div class="hc-bar-track"><div class="hc-bar-fill" id="hc_dao_bar" style="width:0%"></div></div>
+    </div>
+    <div class="health-card" id="hc_visc">
+      <div class="hc-label">DAO Viscosity</div>
+      <div class="hc-val" id="hc_visc_val">&#8212;</div>
+      <div class="hc-unit">cSt @100&deg;C</div>
+      <div class="hc-status" id="hc_visc_st">PENDING</div>
+      <div class="hc-bar-track"><div class="hc-bar-fill" id="hc_visc_bar" style="width:0%"></div></div>
+    </div>
+    <div class="health-card" id="hc_colour">
+      <div class="hc-label">ASTM Colour</div>
+      <div class="hc-val" id="hc_colour_val">&#8212;</div>
+      <div class="hc-unit">ASTM D1500</div>
+      <div class="hc-status" id="hc_colour_st">PENDING</div>
+      <div class="hc-bar-track"><div class="hc-bar-fill" id="hc_colour_bar" style="width:0%"></div></div>
+    </div>
+    <div class="health-card" id="hc_asph">
+      <div class="hc-label">Asph. in DAO</div>
+      <div class="hc-val" id="hc_asph_val">&#8212;</div>
+      <div class="hc-unit">wt%</div>
+      <div class="hc-status" id="hc_asph_st">PENDING</div>
+      <div class="hc-bar-track"><div class="hc-bar-fill" id="hc_asph_bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Column + Gauges -->
+  <div class="visual-row">
+    <div class="column-wrap">
+      <div class="col-title">Extractor Column</div>
+      <svg class="col-svg" viewBox="0 0 200 300">
+        <text x="100" y="13" text-anchor="middle" fill="#8b949e" font-size="9">DAO Outlet</text>
+        <polygon points="100,17 94,25 106,25" fill="#3fb950"/>
+        <rect x="55" y="26" width="90" height="258" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+        <!-- TOP BED -->
+        <rect x="56" y="27" width="88" height="68" fill="#1c3a28"/>
+        <text x="100" y="52" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="700">TOP BED</text>
+        <text x="100" y="64" text-anchor="middle" fill="#8b949e" font-size="8">polishing</text>
+        <text id="col_top_T" x="100" y="78" text-anchor="middle" fill="#58a6ff" font-size="9">T = &#8212; &#176;C</text>
+        <!-- Steam coils -->
+        <line x1="56" y1="95" x2="144" y2="95" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="155" y="99" fill="#d29922" font-size="8">steam</text>
+        <!-- MID BED -->
+        <rect x="56" y="96" width="88" height="68" fill="#1a2535"/>
+        <text x="100" y="122" text-anchor="middle" fill="#58a6ff" font-size="10" font-weight="700">MID BED</text>
+        <text x="100" y="134" text-anchor="middle" fill="#8b949e" font-size="8">extraction</text>
+        <text id="col_mid_T" x="100" y="148" text-anchor="middle" fill="#58a6ff" font-size="9">T = &#8212; &#176;C</text>
+        <!-- BOT BED -->
+        <rect x="56" y="165" width="88" height="117" fill="#1c1e2e"/>
+        <text x="100" y="207" text-anchor="middle" fill="#388bfd" font-size="10" font-weight="700">BOTTOM BED</text>
+        <text x="100" y="219" text-anchor="middle" fill="#8b949e" font-size="8">rejection</text>
+        <text id="col_bot_T" x="100" y="234" text-anchor="middle" fill="#58a6ff" font-size="9">T = &#8212; &#176;C</text>
+        <!-- Border -->
+        <rect x="55" y="26" width="90" height="258" rx="6" fill="none" stroke="#30363d" stroke-width="1.5"/>
+        <!-- Feed arrow (enters at TOP from left) -->
+        <polygon points="54,44 44,38 44,50" fill="#e6edf3"/>
+        <text x="42" y="37" text-anchor="end" fill="#8b949e" font-size="8">Feed</text>
+        <!-- C3 inlet (enters at BOTTOM from right) -->
+        <polygon points="146,244 158,238 158,250" fill="#58a6ff" transform="rotate(180,152,244)"/>
+        <text x="160" y="237" fill="#8b949e" font-size="8">C3 in</text>
+        <!-- Asphalt outlet -->
+        <polygon points="100,286 94,278 106,278" fill="#f85149" transform="rotate(180,100,282)"/>
+        <text x="100" y="298" text-anchor="middle" fill="#8b949e" font-size="9">Asphalt Outlet</text>
+      </svg>
+    </div>
+
+    <div class="gauge-panel">
+      <div class="gauge-title">Operating Margins</div>
+
+      <div class="gauge-row">
+        <div class="gauge-label-row">
+          <span class="gauge-name">Superficial Velocity</span>
+          <span class="gauge-readout" id="g_vel">&#8212; m/s</span>
+        </div>
+        <div class="gauge-track" style="background:linear-gradient(to right,#3fb950 0% 60%,#d29922 60% 80%,#f85149 80% 100%)">
+          <div class="gauge-fill" id="gf_vel" style="right:100%"></div>
+          <div class="gauge-marker" id="gm_vel" style="left:0%"></div>
+        </div>
+        <div class="gauge-zones"><span>0</span><span>SAFE</span><span>WARN</span><span>FLOOD</span><span>0.025 m/s</span></div>
+      </div>
+
+      <div class="gauge-row">
+        <div class="gauge-label-row">
+          <span class="gauge-name">Phase Density Difference</span>
+          <span class="gauge-readout" id="g_drho">&#8212; g/cm&#179;</span>
+        </div>
+        <div class="gauge-track" style="background:linear-gradient(to right,#f85149 0% 30%,#d29922 30% 50%,#3fb950 50% 100%)">
+          <div class="gauge-fill" id="gf_drho" style="right:100%"></div>
+          <div class="gauge-marker" id="gm_drho" style="left:0%"></div>
+        </div>
+        <div class="gauge-zones"><span>0</span><span>CRIT</span><span>WARN</span><span>GOOD</span><span>0.60 g/cm&#179;</span></div>
+      </div>
+
+      <div class="gauge-row">
+        <div class="gauge-label-row">
+          <span class="gauge-name">C3 Saturation Margin</span>
+          <span class="gauge-readout" id="g_sat">&#8212;</span>
+        </div>
+        <div class="gauge-track" style="background:linear-gradient(to right,#f85149 0% 15%,#d29922 15% 50%,#3fb950 50% 100%)">
+          <div class="gauge-fill" id="gf_sat" style="right:100%"></div>
+          <div class="gauge-marker" id="gm_sat" style="left:0%"></div>
+        </div>
+        <div class="gauge-zones"><span>&#8722;5&#176;C</span><span>FLASH</span><span>WATCH</span><span>SAFE</span><span>+20&#176;C</span></div>
+      </div>
+
+      <div id="hw_list" class="hw-list" style="margin-top:10px"></div>
+
+      <div class="th-grid" id="thermal_section" style="display:none;margin-top:12px">
+        <div class="th-cell"><div class="th-label">Bottom Bed</div><div class="th-val" id="th_bot">&#8212;</div><div class="th-unit">&#176;C</div></div>
+        <div class="th-cell"><div class="th-label">Top Bed</div><div class="th-val" id="th_top">&#8212;</div><div class="th-unit">&#176;C</div></div>
+        <div class="th-cell"><div class="th-label">T_sat (C3)</div><div class="th-val" id="th_tsat">&#8212;</div><div class="th-unit">&#176;C</div></div>
+        <div class="th-cell"><div class="th-label">Margin</div><div class="th-val" id="th_margin">&#8212;</div><div class="th-unit">&#176;C</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feed Properties -->
+  <div class="card" id="feed_card" style="display:none">
+    <div class="card-hdr">
+      <span class="card-hdr-title">Feed Properties</span>
+      <span id="feed_label" style="font-size:11px;color:var(--text2)"></span>
+    </div>
+    <div class="card-body">
+      <div class="fp-grid">
+        <div class="fp-cell"><div class="fp-label">API Gravity</div><div class="fp-val" id="fp_api">&#8212;</div></div>
+        <div class="fp-cell"><div class="fp-label">SG @15&#176;C</div><div class="fp-val" id="fp_sg">&#8212;</div></div>
+        <div class="fp-cell"><div class="fp-label">CCR</div><div class="fp-val" id="fp_ccr">&#8212;</div><div class="fp-unit">wt%</div></div>
+        <div class="fp-cell"><div class="fp-label">Visc @100&#176;C</div><div class="fp-val" id="fp_v100">&#8212;</div><div class="fp-unit">cSt</div></div>
+        <div class="fp-cell"><div class="fp-label">Ni</div><div class="fp-val" id="fp_ni">&#8212;</div><div class="fp-unit">wppm</div></div>
+        <div class="fp-cell"><div class="fp-label">V</div><div class="fp-val" id="fp_v">&#8212;</div><div class="fp-unit">wppm</div></div>
+        <div class="fp-cell"><div class="fp-label">DAO Density</div><div class="fp-val" id="fp_rho">&#8212;</div><div class="fp-unit">g/cm&#179;</div></div>
+        <div class="fp-cell"><div class="fp-label">Asphalt Yield</div><div class="fp-val" id="fp_asp">&#8212;</div><div class="fp-unit">wt%</div></div>
+      </div>
+      <div class="sara-bars" id="sara_dao_bars"></div>
+    </div>
+  </div>
+
+  <!-- Stage Breakdown -->
+  <div class="card" id="stage_card" style="display:none">
+    <div class="card-hdr"><span class="card-hdr-title">Stage Breakdown</span></div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead><tr>
+          <th>Stage</th><th>T [&#176;C]</th><th>LLE Yield</th><th>Precip %</th><th>Asph. in DAO</th><th>Conv.</th>
+        </tr></thead>
+        <tbody id="stage_tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Solvent Flows -->
+  <div class="card" id="flow_card" style="display:none">
+    <div class="card-hdr"><span class="card-hdr-title">Solvent Flow Calculator</span></div>
+    <div class="card-body">
+      <div class="flow-grid">
+        <div class="fp-cell"><div class="fp-label">C3 Density</div><div class="fp-val" id="fl_rho">&#8212;</div><div class="fp-unit">g/cm&#179;</div></div>
+        <div class="fp-cell"><div class="fp-label">Total Solvent</div><div class="fp-val" id="fl_total">&#8212;</div><div class="fp-unit">kg/hr</div></div>
+        <div class="fp-cell"><div class="fp-label">Predilution</div><div class="fp-val" id="fl_predil">&#8212;</div><div class="fp-unit">kg/hr</div></div>
+        <div class="fp-cell"><div class="fp-label">Mass S/O</div><div class="fp-val" id="fl_mso">&#8212;</div><div class="fp-unit">kg/kg</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operating Margins -->
+  <div class="card" id="margins_card" style="display:none">
+    <div class="card-hdr">
+      <span class="card-hdr-title">Operating Margins</span>
+      <span id="margins_status" style="font-size:11px;color:var(--text2)"></span>
+    </div>
+    <div class="card-body">
+      <div id="margins_result" style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;font-family:monospace"></div>
+    </div>
+  </div>
+
+  <!-- Sensitivity -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-hdr-title">Sensitivity Analysis</span>
+      <span id="sens_status" style="font-size:11px;color:var(--text2)"></span>
+    </div>
+    <div class="card-body">
+      <div class="sens-bar">
+        <select id="sens_plot">
+          <option value="so_ratio">S/O Ratio Sweep</option>
+          <option value="temperature">Temperature Sweep</option>
+          <option value="pressure">Pressure Sweep</option>
+          <option value="predilution">Predilution Sweep</option>
+          <option value="gradient">Temperature Gradient</option>
+          <option value="yield_quality">Yield vs Quality</option>
+          <option value="operating_map">Operating Map</option>
+          <option value="efficiency">Stage Efficiency</option>
+          <option value="stages">Number of Stages</option>
+          <option value="temperature_top">T-Top Sweep</option>
+          <option value="steam_effect">Steam Effect</option>
+        </select>
+        <button onclick="runSensitivity()" class="btn-sm">Run</button>
+      </div>
+      <div class="plot-box" id="sens_plot_div"></div>
+    </div>
+  </div>
+
+  <!-- Trade-off -->
+  <div class="card">
+    <div class="card-hdr"><span class="card-hdr-title">Yield vs Quality Trade-off (S/O sweep)</span></div>
+    <div class="card-body"><div class="plot-box" id="tradeoff_div"></div></div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div class="card-hdr"><span class="card-hdr-title">Simulation History</span></div>
+    <div class="card-body">
+      <div class="hist-list" id="hist_list"><div style="color:var(--text3);font-size:12px">No simulations yet</div></div>
+    </div>
+  </div>
+
+  <!-- Calibration (Expert only) -->
+  <div class="card expert-only" id="cal_card">
+    <div class="card-hdr"><span class="card-hdr-title">Calibration</span></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label class="slabel">Load Calibration Profile</label>
+        <div style="display:flex;gap:8px">
+          <select id="cal_profile" style="flex:1"></select>
+          <button onclick="loadProfile()" class="btn-sm">Load</button>
+        </div>
+      </div>
+      <!-- ── Workbook Upload (xlsx) ── -->
+      <div>
+        <label class="slabel">LIMS Workbook (lims.xlsx)</label>
+        <div class="csv-drop" id="lims_drop" onclick="document.getElementById('lims_file_input').click()">
+          <div id="lims_file_name">Click to select lims.xlsx</div>
+          <input type="file" id="lims_file_input" accept=".xlsx" style="display:none" onchange="handleLimsUpload(this)">
+        </div>
+        <span id="lims_status" class="file-status" style="font-size:10px;color:var(--text2)"></span>
+      </div>
+      <div>
+        <label class="slabel">Extractor Parameters (extractor_parameters.xlsx)</label>
+        <div class="csv-drop" id="dcs_drop" onclick="document.getElementById('dcs_file_input').click()">
+          <div id="dcs_file_name">Click to select extractor_parameters.xlsx</div>
+          <input type="file" id="dcs_file_input" accept=".xlsx" style="display:none" onchange="handleDcsUpload(this)">
+        </div>
+        <span id="dcs_status" class="file-status" style="font-size:10px;color:var(--text2)"></span>
+      </div>
+
+      <!-- Inspect button -->
+      <div>
+        <button id="btn_inspect" onclick="inspectDataset()" disabled style="width:100%;padding:7px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rad2);color:var(--text2);cursor:not-allowed;font-size:12px">Inspect Dataset</button>
+      </div>
+
+      <!-- Dataset info panel -->
+      <div id="dataset_info_panel" style="display:none;background:var(--bg4);border:1px solid var(--border);border-radius:var(--rad2);padding:10px;font-size:11px;color:var(--text2)">
+        <div id="dataset_info_content"></div>
+      </div>
+
+      <!-- Weights -->
+      <div>
+        <label class="slabel">Calibration Weights</label>
+        <div class="wt-grid">
+          <div><label class="slabel">DAO Yield</label><input type="number" id="w_yield" value="0.4" min="0.1" max="2.0" step="0.1" class="snum" style="width:100%"></div>
+          <div><label class="slabel">DAO Viscosity</label><input type="number" id="w_visc" value="1.0" min="0.1" max="2.0" step="0.1" class="snum" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- Profile name -->
+      <div>
+        <label class="slabel">Profile Name</label>
+        <input type="text" id="profile_name_input" value="plant_calibration_v1"
+               style="width:100%;box-sizing:border-box;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rad2);color:var(--text);padding:6px 8px;font-size:12px;outline:none">
+      </div>
+
+      <!-- PINN toggle -->
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+        <input type="checkbox" id="enable_pinn_chk" style="accent-color:var(--accent);width:14px;height:14px">
+        <label for="enable_pinn_chk" style="font-size:11px;color:var(--text2);cursor:pointer">
+          Enable PINN Hybrid Mode
+          <span style="color:var(--accent);font-weight:600">(+5-6 min)</span>
+          — learns discrepancy from physics residuals
+        </label>
+      </div>
+
+      <!-- Run calibration button -->
+      <div>
+        <button id="btn_calibrate" onclick="runWorkbookCalibration()" disabled
+                style="width:100%;padding:8px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rad2);color:var(--text2);cursor:not-allowed;font-size:12px;font-weight:600">
+          Run Workbook Calibration
+        </button>
+      </div>
+
+      <!-- Progress -->
+      <div id="wb_cal_progress" style="display:none">
+        <div style="background:var(--bg4);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px">
+          <div id="wb_prog_fill" style="height:100%;width:0%;background:var(--accent);transition:width 0.5s"></div>
+        </div>
+        <span id="wb_prog_text" style="font-size:11px;color:var(--text2)">Calibration running... this takes 2–5 minutes.</span>
+      </div>
+
+      <!-- Status -->
+      <div id="cal_status" style="font-size:11px;color:var(--text2)"></div>
+
+      <!-- Calibration results panel -->
+      <div id="wb_cal_results" style="display:none;margin-top:8px">
+
+        <!-- Before / After metrics table -->
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px">Calibration Results (Test Set)</div>
+        <table id="wb_metrics_table" style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:10px">
+          <thead><tr style="color:var(--text2)">
+            <th style="text-align:left;padding:3px 6px">Metric</th>
+            <th style="padding:3px 6px">Before</th>
+            <th style="padding:3px 6px">After</th>
+            <th style="padding:3px 6px">Δ</th>
+          </tr></thead>
+          <tbody id="wb_metrics_body"></tbody>
+        </table>
+
+        <!-- Thermal metrics -->
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px">Thermal Model (MAE per bed, °C)</div>
+        <div id="wb_thermal_panel" style="font-size:11px;color:var(--text2);margin-bottom:10px"></div>
+
+        <!-- Calibrated params -->
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px">Calibrated Parameters</div>
+        <table id="wb_params_table" style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:10px">
+          <thead><tr style="color:var(--text2)">
+            <th style="text-align:left;padding:3px 6px">Parameter</th>
+            <th style="padding:3px 6px">Before</th>
+            <th style="padding:3px 6px">After</th>
+          </tr></thead>
+          <tbody id="wb_params_body"></tbody>
+        </table>
+
+        <!-- Parity plots -->
+        <div id="wb_parity_visc" style="height:220px;margin-bottom:8px"></div>
+        <div id="wb_parity_yield" style="height:220px;margin-bottom:10px"></div>
+
+        <!-- PINN Status Panel (shown only when enable_pinn was checked) -->
+        <div id="wb_pinn_panel" style="display:none">
+          <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px;border-top:1px solid var(--border2);padding-top:8px">
+            &#9889; PINN Hybrid Digital Twin
+          </div>
+          <div id="wb_pinn_status_row" style="font-size:11px;margin-bottom:6px;display:flex;gap:8px;align-items:center">
+            <span id="wb_pinn_badge" style="padding:2px 8px;border-radius:10px;font-weight:600;font-size:10px"></span>
+            <span id="wb_pinn_mode_text" style="color:var(--text2)"></span>
+          </div>
+          <!-- Regime clusters -->
+          <div id="wb_pinn_clusters" style="margin-bottom:8px"></div>
+          <!-- Training summary -->
+          <div id="wb_pinn_training" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>
+          <!-- PINN vs OLS metric comparison -->
+          <table id="wb_pinn_metrics_table" style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:6px">
+            <thead><tr style="color:var(--text2)">
+              <th style="text-align:left;padding:3px 6px">Metric</th>
+              <th style="padding:3px 6px">OLS</th>
+              <th style="padding:3px 6px">PINN</th>
+              <th style="padding:3px 6px">&#916;</th>
+            </tr></thead>
+            <tbody id="wb_pinn_metrics_body"></tbody>
+          </table>
+          <div id="wb_pinn_gate_msg" style="font-size:10px;color:var(--text2);padding:4px 6px;background:var(--bg4);border-radius:4px"></div>
+        </div>
+      </div>
+
+      <!-- Legacy profile save (unchanged) -->
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button onclick="saveProfile()" class="btn-sm">Save Profile</button>
+      </div>
+      <pre class="cal-results" id="cal_results"></pre>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+function g(id){return document.getElementById(id)}
+function sync(fromId,toId,val){const n=parseFloat(val);if(!isNaN(n))g(toId).value=n}
+function setStatus(msg){g('hdr_status').textContent=msg}
+
+/** Bed geometry params — always sent to all endpoints so N is derived server-side. */
+function getBedParams(){
+  const iv=(id,def)=>{const el=g(id);return el?(parseInt(el.value)||def):def;};
+  const fv=(id,def)=>{const el=g(id);return el?(parseFloat(el.value)||def):def;};
+  const th=iv('top_h',1200),mh=iv('mid_h',1200),bh=iv('bot_h',3600);
+  return{
+    top_h:th, top_d:iv('top_d',4300),
+    mid_h:mh, mid_d:iv('mid_d',4300),
+    bot_h:bh, bot_d:iv('bot_d',3000),
+    HETP_mm:fv('HETP_mm',2000),
+    packing_height_mm:th+mh+bh,
+  };
+}
+
+function setMode(mode){
+  const isEx=mode==='expert';
+  document.querySelectorAll('.expert-only').forEach(el=>el.style.display=isEx?'block':'none');
+}
+function toggleSOMode(){
+  const m=document.querySelector('input[name="so_mode"]:checked').value;
+  g('so_label').textContent=m==='vol'?'S/O Ratio [m\u00b3/m\u00b3 vol]':'S/O Ratio [kg/kg mass]';
+}
+function toggleThermalMode(){
+  const m=document.querySelector('input[name="therm_mode"]:checked').value;
+  g('inlet_T_panel').style.display=m==='inlet'?'':'none';
+  g('direct_T_panel').style.display=m==='direct'?'':'none';
+  // When switching to Direct Beds with no state yet, seed from slider values
+  if(m==='direct'&&(!computedTemps||computedTemps.bottom==null)) onBedTempEdit();
+  // When switching back to Inlet, show whatever state is current
+  if(m==='inlet'&&computedTemps&&computedTemps.bottom!=null) applyComputedTemps();
+}
+
+/* ── Temperature state helpers ──────────────────────────────────────────── */
+
+/**
+ * Push computedTemps to ALL temperature UI: inlet display, direct-bed sliders,
+ * and column graphic. Call whenever computedTemps changes.
+ */
+function applyComputedTemps(){
+  const ct=computedTemps;
+  if(!ct||ct.bottom==null) return;
+  const mid=ct.middle!=null?ct.middle:(ct.bottom+ct.top)/2;
+
+  // — Inlet panel results display —
+  g('t_calc_bottom').textContent=ct.bottom.toFixed(1);
+  g('t_calc_middle').textContent=mid.toFixed(1);
+  g('t_calc_top').textContent   =ct.top.toFixed(1);
+  if(ct.dT_steam!=null) g('t_calc_dT').textContent  =ct.dT_steam.toFixed(1);
+  if(ct.T_sat   !=null) g('t_calc_tsat').textContent=ct.T_sat.toFixed(1);
+  // Clear any stale warning
+  const w=g('t_calc_warn');
+  if(w&&w.textContent&&w.textContent.indexOf('recalculation')>-1){
+    w.textContent='';w.style.display='none';
+  }
+  g('temp_calc_result').style.display='block';
+
+  // — Direct Beds sliders + number inputs —
+  const b=parseFloat(ct.bottom.toFixed(1));
+  const t=parseFloat(ct.top.toFixed(1));
+  g('T_bottom').value=b; g('T_bot_n').value=b;
+  g('T_top').value   =t; g('T_top_n').value=t;
+
+  // — Column graphic —
+  g('col_bot_T').textContent='T = '+ct.bottom.toFixed(1)+'\u00b0C';
+  g('col_mid_T').textContent='T = '+mid.toFixed(1)+'\u00b0C';
+  g('col_top_T').textContent='T = '+ct.top.toFixed(1)+'\u00b0C';
+}
+
+/**
+ * Called when any inlet-stream input changes. Clears computedTemps so the
+ * user must click "Calculate Temperatures" again before running simulation.
+ */
+function markTempsStale(){
+  computedTemps={bottom:null,middle:null,top:null,source:null};
+  ['t_calc_bottom','t_calc_middle','t_calc_top',
+   't_calc_dT','t_calc_tsat'].forEach(id=>{const el=g(id);if(el)el.textContent='\u2014';});
+  const w=g('t_calc_warn');
+  if(w){w.textContent='\u26a0\ufe0f Temperatures need recalculation';w.style.display='block';}
+  g('temp_calc_result').style.display='block';
+  // Dim column SVG temps
+  ['col_bot_T','col_mid_T','col_top_T'].forEach(id=>{
+    const el=g(id);if(el)el.textContent='T = \u2014';
+  });
+}
+
+/**
+ * Called on every Direct-Beds slider/input change. Reads T_bottom + T_top,
+ * interpolates T_middle (preserving previous if within range), then pushes
+ * the updated state everywhere.
+ */
+function onBedTempEdit(){
+  const bot=parseFloat(g('T_bottom').value)||72;
+  const top=parseFloat(g('T_top').value)||82;
+  // Keep previous middle if it's still between bot and top, else interpolate
+  const prevMid=(computedTemps&&computedTemps.middle!=null)?computedTemps.middle:null;
+  const mid=(prevMid!=null&&prevMid>bot&&prevMid<top)?prevMid:((bot+top)/2);
+  computedTemps={bottom:bot,middle:mid,top:top,source:'manual',dT_steam:null,T_sat:null};
+
+  // Reflect in inlet panel display
+  g('t_calc_bottom').textContent=bot.toFixed(1);
+  g('t_calc_middle').textContent=mid.toFixed(1);
+  g('t_calc_top').textContent   =top.toFixed(1);
+  g('t_calc_dT').textContent    ='\u2014';
+  g('t_calc_tsat').textContent  ='\u2014';
+  const w=g('t_calc_warn');if(w){w.textContent='';w.style.display='none';}
+  g('temp_calc_result').style.display='block';
+
+  // Column graphic
+  g('col_bot_T').textContent='T = '+bot.toFixed(1)+'\u00b0C';
+  g('col_mid_T').textContent='T = '+mid.toFixed(1)+'\u00b0C';
+  g('col_top_T').textContent='T = '+top.toFixed(1)+'\u00b0C';
+}
+
+/* ── Calculate Temperatures (pre-simulation, fast) ──────────────────────── */
+function calcTemps(){
+  const btn=g('calc_temp_btn');
+  btn.disabled=true;
+  btn.textContent='Calculating…';
+  const ne=parseInt(document.querySelector('input[name="n_ext"]:checked').value)||2;
+  const payload={
+    T_feed_mixed:       parseFloat(g('T_feed_mixed').value)||90,
+    T_propane_fresh:    parseFloat(g('T_propane_fresh').value)||54,
+    steam_flow_kg_hr:   parseFloat(g('steam_flow_kg_hr').value)||2830,
+    lp_steam_pressure:  parseFloat(g('lp_steam_pressure').value)||4.5,
+    P_kgcm2:            parseFloat(g('P_kgcm2').value)||40,
+    feed_flow_m3hr:     parseFloat(g('feed_flow_m3hr').value)||86.1,
+    so:                 parseFloat(g('so').value)||8,
+    n_extractors:       ne,
+  };
+  fetch('/api/calculate_temperatures',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.error){
+      alert('Temperature calculation error: '+d.error);
+    }else{
+      // ── Update single-source-of-truth state ──────────────────────────────
+      computedTemps={
+        bottom:   d.T_bottom_C,
+        middle:   d.T_middle_C,
+        top:      d.T_top_C,
+        source:  'calculated',
+        dT_steam: d.dT_steam_C,
+        T_sat:    d.T_sat_steam_C,
+      };
+      // Push to inlet display + direct-bed sliders + column graphic
+      applyComputedTemps();
+      // dT and Tsat are not in applyComputedTemps display unless stored above (they are)
+      g('t_calc_dT').textContent  =d.dT_steam_C.toFixed(1);
+      g('t_calc_tsat').textContent=d.T_sat_steam_C.toFixed(1);
+      // Flash warning
+      const warnEl=g('t_calc_warn');
+      if(d.flash_warning){warnEl.textContent=d.flash_warning;warnEl.style.display='block';}
+      else{warnEl.textContent='';warnEl.style.display='none';}
+    }
+  })
+  .catch(e=>alert('Fetch error: '+e))
+  .finally(()=>{
+    btn.disabled=false;
+    btn.innerHTML='&#x1F321; Calculate Temperatures';
+  });
+}
+function updateFeedLabel(){
+  g('custom_feed_panel').style.display=g('feed').value==='custom'?'block':'none';
+}
+
+function getParams(){
+  const tm=document.querySelector('input[name="therm_mode"]:checked').value;
+  const sm=document.querySelector('input[name="so_mode"]:checked').value;
+  const ne=parseInt(document.querySelector('input[name="n_ext"]:checked').value)||2;
+  const thermo=document.querySelector('input[name="thermo_model"]:checked').value;
+  const p={
+    feed:g('feed').value,solvent:g('solvent').value,
+    so:parseFloat(g('so').value),so_mode:sm,
+    predilution_frac:parseFloat(g('predilution_frac').value),
+    E:parseFloat(g('E').value),k_precip:parseFloat(g('k_precip').value),
+    tau:parseFloat(g('tau').value),C_entrain:parseFloat(g('C_entrain').value),
+    K_multiplier:parseFloat(g('K_multiplier').value),
+    delta_crit:parseFloat(g('delta_crit').value),
+    alpha_density:parseFloat(g('alpha_density').value),
+    feed_flow_m3hr:parseFloat(g('feed_flow_m3hr').value)||86.1,
+    P_kgcm2:parseFloat(g('P_kgcm2').value),
+    n_extractors:ne,thermal_mode:tm==='inlet',
+    HETP_mm:parseFloat(g('HETP_mm')&&g('HETP_mm').value||2000),
+    bottom_T_blend:parseFloat(g('bottom_T_blend').value),
+    middle_T_blend:parseFloat(g('middle_T_blend').value),
+    thermo_mode:thermo,
+  };
+  // Per-bed config if available (Expert mode) — flat keys read by backend
+  if(g('top_h')){
+    p.top_h=parseInt(g('top_h').value)||1200;
+    p.top_d=parseInt(g('top_d').value)||4300;
+    p.mid_h=parseInt(g('mid_h').value)||1200;
+    p.mid_d=parseInt(g('mid_d').value)||4300;
+    p.bot_h=parseInt(g('bot_h').value)||3600;
+    p.bot_d=parseInt(g('bot_d').value)||3000;
+    const totalH=p.top_h+p.mid_h+p.bot_h;
+    const hetp=parseFloat(g('HETP_mm').value)||2000;
+    p.packing_height_mm=totalH;
+    // N is derived server-side from bed geometry — no stages sentinel needed
+  }
+  // Downstream corrections (Expert mode)
+  if(g('enable_downstream')){
+    p.enable_downstream=g('enable_downstream').checked;
+    p.enable_flash_precip=g('enable_flash_precip')&&g('enable_flash_precip').checked;
+    p.enable_residual_solvent=g('enable_residual_solvent')&&g('enable_residual_solvent').checked;
+    p.flash_P_bar=parseFloat(g('flash_P_bar')&&g('flash_P_bar').value||5.0);
+    p.residual_solvent_pct=parseFloat(g('residual_solvent_pct')&&g('residual_solvent_pct').value||0.5);
+  }
+  // ── Temperatures: computedTemps is the single source of truth ───────────
+  if(computedTemps&&computedTemps.bottom!=null){
+    // Pre-computed or manually set — always use these values directly
+    p.T_bottom=computedTemps.bottom;
+    p.T_top   =computedTemps.top;
+    p.thermal_mode=false;  // backend must NOT recompute from inlet params
+    if(computedTemps.source==='calculated'){
+      // Also pass inlet params so backend thermal_info is fully populated
+      p.T_feed_mixed    =parseFloat(g('T_feed_mixed').value);
+      p.T_propane_fresh =parseFloat(g('T_propane_fresh').value);
+      p.steam_flow_kg_hr=parseFloat(g('steam_flow_kg_hr').value);
+      p.lp_steam_pressure=parseFloat(g('lp_steam_pressure')&&g('lp_steam_pressure').value||4.5);
+    }
+  }else if(tm==='inlet'){
+    // computedTemps not yet set — pass inlet params, backend will compute temps
+    p.T_feed_mixed    =parseFloat(g('T_feed_mixed').value);
+    p.T_propane_fresh =parseFloat(g('T_propane_fresh').value);
+    p.steam_flow_kg_hr=parseFloat(g('steam_flow_kg_hr').value);
+    p.lp_steam_pressure=parseFloat(g('lp_steam_pressure')&&g('lp_steam_pressure').value||4.5);
+  }else{
+    // Direct beds, computedTemps null — read sliders directly
+    p.T_bottom=parseFloat(g('T_bottom').value);
+    p.T_top   =parseFloat(g('T_top').value);
+  }
+  if(g('feed').value==='custom'&&lastCustomSARA)p.custom_sara=lastCustomSARA;
+  // Custom feed density/CCR/visc
+  if(g('feed').value==='custom'&&g('cf_density')){
+    p.custom_density_kg_m3=parseFloat(g('cf_density').value)||1028;
+    p.custom_ccr=parseFloat(g('cf_ccr').value)||22.8;
+    p.custom_visc=parseFloat(g('cf_visc').value)||1621;
+  }
+  return p;
+}
+function updateFeedFlowHint(){
+  // Estimate kg/hr using a nominal feed density of 1028 kg/m3
+  const m3=parseFloat(g('feed_flow_m3hr').value)||86.1;
+  g('feed_flow_kghr_hint').textContent='\u2248 '+Math.round(m3*1028).toLocaleString()+' kg/hr';
+}
+function updateAPIDisplay(){
+  const density=parseFloat(g('cf_density')&&g('cf_density').value||1028);
+  const sg=density/1000;
+  const api=141.5/sg-131.5;
+  if(g('cf_api_display'))g('cf_api_display').textContent=api.toFixed(1);
+}
+function updateBedSummary(){
+  const topH=parseInt(g('top_h')&&g('top_h').value||1200);
+  const midH=parseInt(g('mid_h')&&g('mid_h').value||1200);
+  const botH=parseInt(g('bot_h')&&g('bot_h').value||3600);
+  const hetp=parseFloat(g('HETP_mm')&&g('HETP_mm').value||2000);
+  const total=topH+midH+botH;
+  const stages=Math.max(3,Math.round(total/hetp));
+  const top_s=Math.max(1,Math.round(topH/hetp));
+  const mid_s=Math.max(1,Math.round(midH/hetp));
+  const bot_s=Math.max(1,Math.round(botH/hetp));
+  if(g('bed_summary'))g('bed_summary').textContent='Total: '+total+' mm \u2192 '+stages+' stages (Top='+top_s+' Mid='+mid_s+' Bot='+bot_s+')';
+}
+
+function setHealthCard(id,val,decim,lo_green,lo_warn,max_val,inverted){
+  const card=g('hc_'+id);
+  const st=g('hc_'+id+'_st');
+  const bar=g('hc_'+id+'_bar');
+  g('hc_'+id+'_val').textContent=(val==null||isNaN(val))?'\u2014':val.toFixed(decim);
+  let cls,stTxt;
+  if(inverted){
+    if(val>lo_warn){cls='risk';stTxt='RISK'}
+    else if(val>lo_green){cls='warn';stTxt='WATCH'}
+    else{cls='';stTxt='GOOD'}
+  }else{
+    if(val<lo_warn){cls='risk';stTxt='RISK'}
+    else if(val<lo_green){cls='warn';stTxt='WATCH'}
+    else{cls='';stTxt='GOOD'}
+  }
+  card.className='health-card'+(cls?' '+cls:'');
+  st.textContent=stTxt;
+  bar.style.width=Math.min(Math.abs(val)/max_val*100,100)+'%';
+}
+
+const SARA_C={saturates:'#3fb950',aromatics:'#58a6ff',resins:'#d29922',asphaltenes:'#f85149'};
+function renderSaraBars(id,sara){
+  const el=g(id);if(!el||!sara)return;
+  el.innerHTML='';
+  for(const[k,v] of Object.entries(sara)){
+    const pct=Math.min(parseFloat(v)||0,100);
+    el.innerHTML+=`<div class="sara-row"><span class="sara-row-label">${k}</span><div class="sara-bar-track"><div class="sara-bar-fill" style="width:${pct}%;background:${SARA_C[k]||'#8b949e'}"></div></div><span class="sara-row-val">${pct.toFixed(1)}%</span></div>`;
+  }
+}
+
+function updateGauge(pct,fi,mi){
+  pct=Math.max(0,Math.min(pct,100));
+  g(fi).style.right=(100-pct)+'%';
+  g(mi).style.left=Math.min(pct,98)+'%';
+}
+function updateVelGauge(v){
+  updateGauge(v/0.025*100,'gf_vel','gm_vel');
+  g('g_vel').textContent=v.toFixed(4)+' m/s';
+  g('g_vel').style.color=v>0.020?'#f85149':v>0.015?'#d29922':'#3fb950';
+}
+function updateDrhoGauge(dr){
+  updateGauge(dr/0.60*100,'gf_drho','gm_drho');
+  g('g_drho').textContent=dr.toFixed(3)+' g/cm\u00b3';
+  g('g_drho').style.color=dr<0.10?'#f85149':dr<0.20?'#d29922':'#3fb950';
+}
+function updateSatGauge(sc){
+  const m=sc.margin_C||0;
+  updateGauge((m+5)/25*100,'gf_sat','gm_sat');
+  g('g_sat').textContent='T_top='+sc.T_top_C+'\u00b0C  T_sat='+sc.T_sat_C+'\u00b0C  margin='+m.toFixed(1)+'\u00b0C';
+  g('g_sat').style.color=sc.status==='critical'?'#f85149':sc.status==='warning'?'#d29922':'#3fb950';
+}
+function updateColSVG(d){
+  const ti=d.thermal_info||{};
+  const bot=ti.T_bottom_C!=null?ti.T_bottom_C:d.T_bottom;
+  const top=ti.T_top_C!=null?ti.T_top_C:d.T_top;
+  const mid=ti.T_middle_C!=null?ti.T_middle_C:((bot+top)/2).toFixed(1);
+  if(bot!=null)g('col_bot_T').textContent='T = '+parseFloat(bot).toFixed(1)+'\u00b0C';
+  if(mid!=null)g('col_mid_T').textContent='T = '+parseFloat(mid).toFixed(1)+'\u00b0C';
+  if(top!=null)g('col_top_T').textContent='T = '+parseFloat(top).toFixed(1)+'\u00b0C';
+}
+
+let lastSimData=null;
+/* ── Single-source-of-truth temperature state ───────────────────────────── */
+let computedTemps={bottom:null,middle:null,top:null,source:null};
+
+async function runSim(){
+  setStatus('Running simulation...');
+  try{
+    const params=getParams();
+    const res=await fetch('/api/simulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
+    const d=await res.json();
+    if(!d.ok){setStatus('Error: '+d.error);return}
+    lastSimData=d;
+
+    // Health strip
+    setHealthCard('dao',d.DAO_yield,1,15,10,40,false);
+    if(d.viscosity_cSt!=null)setHealthCard('visc',d.viscosity_cSt,1,40,60,80,true);
+    if(d.astm_colour!=null)setHealthCard('colour',d.astm_colour,1,4,6,8,true);
+    setHealthCard('asph',d.asphal_contam,3,0.1,0.5,2.0,true);
+
+    // Feed props
+    g('feed_card').style.display='block';
+    const fp=d.feed_props||{};
+    g('fp_api').textContent=fp.API??'\u2014';g('fp_sg').textContent=fp.SG_15??'\u2014';
+    g('fp_ccr').textContent=fp.CCR_wt??'\u2014';g('fp_v100').textContent=fp.visc_100_cSt??'\u2014';
+    g('fp_ni').textContent=fp.Ni_wppm??'\u2014';g('fp_v').textContent=fp.V_wppm??'\u2014';
+    g('fp_rho').textContent=d.density_DAO??'\u2014';
+    g('fp_asp').textContent=d.asphalt_yield!=null?d.asphalt_yield.toFixed(1):'\u2014';
+    g('feed_label').textContent=d.feed_label||'';
+    renderSaraBars('sara_dao_bars',d.SARA_DAO);
+
+    // Stage table
+    g('stage_card').style.display='block';
+    if(d.stage_results&&d.stage_results.length){
+      g('stage_tbody').innerHTML=d.stage_results.map(s=>{
+        const cv=s.asphal_in_dao_pct.toFixed(3);
+        const cc=s.asphal_in_dao_pct>1?'crit':s.asphal_in_dao_pct>0.3?'warn':'ok';
+        return`<tr><td>${s.stage}</td><td>${s.T_C.toFixed(1)}</td><td>${s.lle_yield.toFixed(1)}%</td><td>${s.precip_yield.toFixed(1)}%</td><td class="${cc}">${cv}%</td><td>${s.converged?'&#10003;':'&#9888;'}</td></tr>`;
+      }).join('');
+    }
+
+    // Gauges
+    const hm=d.hydraulic_metrics||{};
+    if(hm.velocity_m_s!=null)updateVelGauge(hm.velocity_m_s);
+    if(hm.delta_rho!=null)updateDrhoGauge(hm.delta_rho);
+    const sc=d.sat_check||{};
+    if(sc.T_sat_C!=null)updateSatGauge(sc);
+
+    // Thermal
+    g('thermal_section').style.display='grid';
+    if(d.T_bottom!=null)g('th_bot').textContent=d.T_bottom.toFixed(1);
+    if(d.T_top!=null)g('th_top').textContent=d.T_top.toFixed(1);
+    if(sc.T_sat_C!=null)g('th_tsat').textContent=sc.T_sat_C.toFixed(1);
+    if(sc.margin_C!=null){
+      const m=sc.margin_C;
+      g('th_margin').textContent=m.toFixed(1);
+      g('th_margin').style.color=m<0?'#f85149':m<3?'#d29922':'#3fb950';
+    }
+    const ti=d.thermal_info||{};
+    // ── Sync computedTemps from simulation result when not pre-set ────────
+    // (Covers the case where user runs sim in inlet mode without clicking
+    //  "Calculate Temperatures" first — backend computed the temps internally)
+    if(ti.T_bottom_C!=null&&(!computedTemps||computedTemps.bottom==null)){
+      computedTemps={
+        bottom:  ti.T_bottom_C,
+        middle:  ti.T_middle_C,
+        top:     ti.T_top_C,
+        source: 'calculated',
+        dT_steam:ti.dT_steam_C||null,
+        T_sat:   ti.T_sat_steam_C||null,
+      };
+      applyComputedTemps();
+    }
+    updateColSVG(d);
+
+    // Hydraulic warnings
+    const hw=d.hydraulic_warnings||[];
+    const hwEl=g('hw_list');
+    if(hw.length===0){
+      hwEl.innerHTML='<div class="hw-item hw-ok">&#10003; All hydraulic checks passed</div>';
+    }else{
+      hwEl.innerHTML=hw.map(w=>{
+        const t=w.toLowerCase().includes('flood')||w.toLowerCase().includes('critical')?'hw-crit':'hw-warn';
+        return`<div class="hw-item ${t}">${w}</div>`;
+      }).join('');
+    }
+
+    // Flows
+    const fd=d.flow_data||{};
+    if(fd.total_solvent_kg_hr!=null){
+      g('flow_card').style.display='block';
+      g('fl_rho').textContent=fd.propane_density!=null?fd.propane_density.toFixed(4):'\u2014';
+      g('fl_total').textContent=fd.total_solvent_kg_hr!=null?Math.round(fd.total_solvent_kg_hr).toLocaleString():'\u2014';
+      g('fl_predil').textContent=fd.predilution_kg_hr!=null?Math.round(fd.predilution_kg_hr).toLocaleString():'\u2014';
+      g('fl_mso').textContent=fd.mass_SO!=null?fd.mass_SO.toFixed(3):'\u2014';
+    }
+
+    if(d.history)updateHistory(d.history);
+    updateTradeoff();
+    setStatus('Done \u2014 DAO: '+d.DAO_yield.toFixed(1)+'%  Contam: '+d.asphal_contam.toFixed(3)+'%  Visc: '+(d.viscosity_cSt!=null?d.viscosity_cSt.toFixed(1)+' cSt':'\u2014')+'  Colour: '+(d.astm_colour!=null?d.astm_colour.toFixed(1):'\u2014'));
+  }catch(e){setStatus('Network error: '+e.message)}
+}
+
+async function runSensitivity(){
+  const p=Object.assign(getParams(),getBedParams()),pt=g('sens_plot').value;
+  g('sens_status').textContent='Computing...';
+  try{
+    const res=await fetch('/api/sensitivity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...p,plot:pt})});
+    const d=await res.json();
+    if(!d.ok){g('sens_status').textContent='Error: '+d.error;return}
+    Plotly.react('sens_plot_div',d.figure.data,d.figure.layout,{responsive:true,displaylogo:false});
+    g('sens_status').textContent='Done';
+  }catch(e){g('sens_status').textContent='Error: '+e.message}
+}
+
+async function runOperatingMargins(){
+  const p=Object.assign(getParams(),getBedParams());
+  g('margins_card').style.display='block';
+  g('margins_status').textContent='Computing (~10-20s)...';
+  g('margins_result').textContent='Running constrained parameter sweep. Please wait...';
+  try{
+    const res=await fetch('/api/operating_margins',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d=await res.json();
+    if(!d.ok){g('margins_status').textContent='Error: '+d.error;
+      g('margins_result').textContent=d.error+(d.trace?'\n\n'+d.trace:'');return}
+    const m=d.margins||{};
+    // Guard: backend may return {error:'...'} as top-level dict on baseline failure
+    if(m.error&&Object.keys(m).length===1){
+      g('margins_status').textContent='Error: '+m.error;
+      g('margins_result').textContent=m.error;return;
+    }
+    let txt='';
+    for(const[param,info] of Object.entries(m)){
+      // Skip or show top-level 'error' string keys defensively
+      if(typeof info!=='object'||info===null){
+        txt+=param+': Error \u2014 '+(info??'unknown')+'\n\n';continue;
+      }
+      if(info.error){txt+=param+': Error \u2014 '+info.error+'\n\n';continue}
+      const cur=info.current!=null?info.current:'\u2014';
+      txt+=`${param}: Current = ${cur}\n`;
+      if(info.max_increase!=null) txt+=`  Can INCREASE to ${info.max_increase} (+${Math.abs(info.max_increase_pct||0).toFixed(1)}%) safely\n`;
+      if(info.max_decrease!=null) txt+=`  Can DECREASE to ${info.max_decrease} (${(info.max_decrease_pct||0).toFixed(1)}%) safely\n`;
+      if(info.baseline) txt+=`  Baseline: yield=${info.baseline.yield}%  visc=${info.baseline.viscosity} cSt  colour=${info.baseline.colour}\n`;
+      txt+='\n';
+    }
+    g('margins_result').textContent=txt||'No margins computed.';
+    g('margins_status').textContent='Done';
+  }catch(e){g('margins_status').textContent='Error: '+e.message}
+}
+
+async function updateTradeoff(){
+  try{
+    const res=await fetch('/api/tradeoff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign(getParams(),getBedParams()))});
+    const d=await res.json();
+    if(d.ok&&d.figure)Plotly.react('tradeoff_div',d.figure.data,d.figure.layout,{responsive:true,displaylogo:false});
+  }catch(e){}
+}
+
+function updateHistory(hist){
+  const el=g('hist_list');
+  if(!hist||!hist.length){el.innerHTML='<div style="color:var(--text3);font-size:12px">No simulations yet</div>';return}
+  el.innerHTML=hist.map(h=>`<div class="hist-item"><div class="hist-id">${h.id}</div><div class="hist-meta"><span class="hist-metric">Feed: <strong>${h.params.feed||'\u2014'}</strong></span><span class="hist-metric">S/O: <strong>${h.params.SO||'\u2014'}</strong></span><span class="hist-metric">T: <strong>${h.params.T_bottom||'\u2014'}\u2013${h.params.T_top||'\u2014'}\u00b0C</strong></span><span class="hist-metric">DAO: <strong>${h.results.DAO_yield.toFixed(1)}%</strong></span><span class="hist-metric">Colour: <strong>${h.results.astm_colour.toFixed(1)}</strong></span></div><div class="hist-time">${h.timestamp}</div></div>`).join('');
+}
+
+async function exportExcel(){
+  if(!lastSimData){alert('Run a simulation first');return}
+  const p=getParams();
+  const pl={feed:p.feed,solvent:p.solvent,so:p.so,stages:p.stages,predilution:p.predilution_frac,
+    DAO_yield:lastSimData.DAO_yield,asphalt_yield:lastSimData.asphalt_yield,
+    density:lastSimData.density_DAO,viscosity:lastSimData.viscosity_cSt,
+    colour:lastSimData.astm_colour,asph_contam:lastSimData.asphal_contam,
+    T_bottom:lastSimData.T_bottom,T_top:lastSimData.T_top,
+    stage_results:lastSimData.stage_results,SARA_DAO:lastSimData.SARA_DAO,
+    hydraulic_warnings:lastSimData.hydraulic_warnings||[],
+    hydraulic_metrics:lastSimData.hydraulic_metrics||{}};
+  try{
+    const res=await fetch('/api/export_excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pl)});
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='SDA_Simulation.xlsx';a.click();
+  }catch(e){alert('Export failed: '+e.message)}
+}
+
+let lastCustomSARA=null;
+async function charFeed(){
+  try{
+    const density=parseFloat(g('cf_density')&&g('cf_density').value||1028);
+    const ccr=parseFloat(g('cf_ccr').value||22.8);
+    const visc=parseFloat(g('cf_visc')&&g('cf_visc').value||1621);
+    const res=await fetch('/api/characterise_feed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({density_kg_m3:density,CCR:ccr,visc_100:visc})});
+    const d=await res.json();
+    if(d.ok){
+      lastCustomSARA=d.SARA;
+      const api=d.API_computed||d.API||(141.5/(density/1000)-131.5).toFixed(1);
+      g('cf_result').textContent='API: '+parseFloat(api).toFixed(1)+'  Sat:'+d.SARA.saturates.toFixed(1)+'%  Aro:'+d.SARA.aromatics.toFixed(1)+'%  Res:'+d.SARA.resins.toFixed(1)+'%  Asp:'+d.SARA.asphaltenes.toFixed(1)+'%';
+      updateAPIDisplay();
+    }
+  }catch(e){if(g('cf_result'))g('cf_result').textContent='Error: '+e.message}
+}
+
+let calCSVData='';
+function handleCSVFile(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{calCSVData=e.target.result;g('csv_textarea').value=calCSVData;g('csv_file_name').textContent=f.name;g('csv_drop_area').classList.add('has-file')};r.readAsText(f)}
+function handleDrop(e){e.preventDefault();const f=e.dataTransfer.files[0];if(f){const i=document.createElement('input');i.type='file';const dt=new DataTransfer();dt.items.add(f);i.files=dt.files;handleCSVFile(i)}}
+
+async function loadCalibrationProfiles(){
+  try{const res=await fetch('/api/calibration/profiles');const d=await res.json();if(d.ok){g('cal_profile').innerHTML=d.profiles.map(p=>`<option value="${p.name}">${p.name}</option>`).join('')}}catch(e){}
+}
+async function loadProfile(){
+  const name=g('cal_profile').value;if(!name)return;
+  try{const res=await fetch('/api/calibration/load/'+name);const d=await res.json();
+    if(d.ok&&d.params){const p=d.params;
+      if(p.K_multiplier!=null){g('K_multiplier').value=p.K_multiplier;g('Km_n').value=p.K_multiplier}
+      if(p.E_murphree!=null){g('E').value=p.E_murphree;g('E_n').value=p.E_murphree}
+      if(p.delta_crit!=null){g('delta_crit').value=p.delta_crit;g('dc_n').value=p.delta_crit}
+      if(p.C_entrain!=null){g('C_entrain').value=p.C_entrain;g('Ce_n').value=p.C_entrain}
+      if(p.k_precip!=null){g('k_precip').value=p.k_precip;g('kp_n').value=p.k_precip}
+      if(p.alpha_density!=null){g('alpha_density').value=p.alpha_density;g('ad_n').value=p.alpha_density}
+      // Build a detailed confirmation message
+      const km=parseFloat(p.K_multiplier||1.0).toFixed(3);
+      const vs=p.visc_slope!=null?`visc_slope=${parseFloat(p.visc_slope).toFixed(3)}  visc_bias=${parseFloat(p.visc_bias||0).toFixed(1)} cSt`:'no visc calibration';
+      const deadZone=parseFloat(km)<0.87;
+      const warn=deadZone?' ⚠ K_mult near dead-zone — yield may collapse at T_bot≥68°C':'';
+      g('cal_status').textContent=`Profile loaded: "${name}" | K_mult=${km}  ${vs}${warn}`;
+      g('cal_status').style.color=deadZone?'#e74c3c':'';
+    }
+  }catch(e){g('cal_status').textContent='Load error: '+e.message}
+}
+async function runCalibration(){
+  const csv=g('csv_textarea').value.trim()||calCSVData;
+  if(!csv){g('cal_status').textContent='No CSV data';return}
+  g('cal_status').textContent='Calibrating...';
+  try{
+    const pl={csv_data:csv,weights:{
+      DAO_yield:       parseFloat(g('wt_yield').value),
+      DAO_viscosity:   parseFloat(g('wt_visc').value),
+      DAO_astm_colour: parseFloat(g('wt_colour').value),
+      DAO_density:     parseFloat(g('wt_density').value),
+      DAO_CCR:         parseFloat(g('wt_ccr').value),
+      asph_contam:     parseFloat(g('wt_contam').value),
+    }};
+    const res=await fetch('/api/calibration/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pl)});
+    const d=await res.json();
+    if(d.ok){
+      const cr=g('cal_results');cr.style.display='block';
+      const bp=d.calibrated_params||d.best_params||{};const me=d.metrics||{};
+      let txt='=== Best Parameters ===\n'+JSON.stringify(bp,null,2);
+      txt+='\n\n=== Accuracy Metrics (calibrated) ===\n';
+      for(const[k,v] of Object.entries(me)){
+        if(v&&typeof v==='object'){
+          txt+=`  ${k.padEnd(20)} MAE=${v.MAE!=null?v.MAE.toFixed(3):'—'}  RMSE=${v.RMSE!=null?v.RMSE.toFixed(3):'—'}  bias=${v.bias!=null?(v.bias>=0?'+':'')+v.bias.toFixed(3):'—'}  n=${v.n||0}\n`
+        }
+      }
+      txt+=`\nImprovement: ${d.improvement_pct!=null?d.improvement_pct.toFixed(1):'—'}%`;
+      txt+=`\nFinal cost:  ${d.cost_final!=null?d.cost_final.toFixed(4):'—'}`;
+      cr.textContent=txt;
+      if(bp.K_multiplier!=null){g('K_multiplier').value=bp.K_multiplier;g('Km_n').value=bp.K_multiplier}
+      if(bp.E_murphree!=null){g('E').value=bp.E_murphree;g('E_n').value=bp.E_murphree}
+      if(bp.delta_crit!=null){g('delta_crit').value=bp.delta_crit;g('dc_n').value=bp.delta_crit}
+      if(bp.C_entrain!=null){g('C_entrain').value=bp.C_entrain;g('ce_n').value=bp.C_entrain}
+      g('cal_status').textContent='\u2705 Calibration complete — parameters applied'
+    }else g('cal_status').textContent='\u274c Error: '+d.error
+  }catch(e){g('cal_status').textContent='Error: '+e.message}
+}
+async function saveProfile(){
+  const name=prompt('Profile name:');if(!name)return;
+  const params={K_multiplier:parseFloat(g('K_multiplier').value),E_murphree:parseFloat(g('E').value),delta_crit:parseFloat(g('delta_crit').value),C_entrain:parseFloat(g('C_entrain').value),k_precip:parseFloat(g('k_precip').value),alpha_density:parseFloat(g('alpha_density').value)};
+  try{
+    const res=await fetch('/api/calibration/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,params,description:'Saved from UI'})});
+    const d=await res.json();
+    if(d.ok){g('cal_status').textContent='Saved: '+name;loadCalibrationProfiles()}
+    else g('cal_status').textContent='Error: '+d.error
+  }catch(e){g('cal_status').textContent='Error: '+e.message}
+}
+
+loadCalibrationProfiles();
+setMode('operator');
+updateFeedFlowHint();
+updateAPIDisplay();
+updateBedSummary();
+document.querySelectorAll('input[name="thermo_model"]').forEach(r=>{
+  r.addEventListener('change',()=>{
+    if(g('phct_note'))g('phct_note').style.display=r.value==='phct'&&r.checked?'block':'none';
+  });
+});
+
+function showHelp(){g('help_modal').style.display='block';document.body.style.overflow='hidden'}
+function closeHelp(){g('help_modal').style.display='none';document.body.style.overflow=''}
+function showHelpTab(i){
+  document.querySelectorAll('.help-panel').forEach((p,j)=>p.style.display=j===i?'block':'none');
+  document.querySelectorAll('.help-tab').forEach((t,j)=>{t.classList.toggle('active',j===i)});
+}
+async function downloadSampleCSV(){
+  try{
+    const res=await fetch('/api/calibration/sample_csv');
+    const d=await res.json();
+    if(d.ok){
+      const blob=new Blob([d.csv],{type:'text/csv'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download='sda_sample_plant_data.csv';a.click();
+    }else{alert('Error: '+d.error)}
+  }catch(e){alert('Download failed: '+e.message)}
+}
+
+/* ── Workbook calibration JS ──────────────────────────────────────────── */
+let _limsFile=null, _dcsFile=null;
+
+function _checkWbReady(){
+  const ok=_limsFile&&_dcsFile;
+  const btn=g('btn_inspect');
+  btn.disabled=!ok;
+  btn.style.background=ok?'var(--bg3)':'var(--bg4)';
+  btn.style.color=ok?'var(--text)':'var(--text2)';
+  btn.style.cursor=ok?'pointer':'not-allowed';
+}
+
+function handleLimsUpload(inp){
+  const f=inp.files[0];if(!f)return;
+  _limsFile=f;
+  g('lims_file_name').textContent=f.name;
+  g('lims_drop').classList.add('has-file');
+  g('lims_status').textContent='✓ '+f.name;
+  _checkWbReady();
+}
+
+function handleDcsUpload(inp){
+  const f=inp.files[0];if(!f)return;
+  _dcsFile=f;
+  g('dcs_file_name').textContent=f.name;
+  g('dcs_drop').classList.add('has-file');
+  g('dcs_status').textContent='✓ '+f.name;
+  _checkWbReady();
+}
+
+async function inspectDataset(){
+  if(!_limsFile||!_dcsFile){g('cal_status').textContent='Select both files first';return;}
+  g('cal_status').textContent='Inspecting dataset...';
+  g('dataset_info_panel').style.display='none';
+  try{
+    const fd=new FormData();
+    fd.append('lims_file',_limsFile);
+    fd.append('dcs_file',_dcsFile);
+    const res=await fetch('/api/calibration_dataset_info',{method:'POST',body:fd});
+    const d=await res.json();
+    if(!d.ok){g('cal_status').textContent='Error: '+d.error;return;}
+    const di=d.dataset_info;
+    let html=`<b>Date range:</b> ${di.date_range_start} — ${di.date_range_end}<br>
+      <b>DCS rows:</b> ${di.dcs_rows_total} total / ${di.dcs_rows_valid} both-valid / ${di.dcs_rows_steady} steady<br>
+      <b>LIMS DAO viscosity samples matched:</b> ${di.dao_visc_count}<br>
+      <b>Feed viscosity samples matched:</b> ${di.feed_visc_count}<br>
+      <b>Feed density samples:</b> ${di.feed_density_count}<br>
+      <b>visc_anchored rows (calibration target):</b> ${di.visc_anchored_rows}`;
+    g('dataset_info_content').innerHTML=html;
+    g('dataset_info_panel').style.display='block';
+    g('cal_status').textContent='';
+    const canCal=di.visc_anchored_rows>100;
+    const btn=g('btn_calibrate');
+    btn.disabled=!canCal;
+    btn.style.background=canCal?'linear-gradient(135deg,var(--accent2),var(--green))':'var(--bg4)';
+    btn.style.color=canCal?'#fff':'var(--text2)';
+    btn.style.cursor=canCal?'pointer':'not-allowed';
+    if(!canCal)g('cal_status').textContent=`Only ${di.visc_anchored_rows} visc rows — need >100 for calibration`;
+  }catch(e){g('cal_status').textContent='Inspect failed: '+e.message;}
+}
+
+async function runWorkbookCalibration(){
+  if(!_limsFile||!_dcsFile){g('cal_status').textContent='Select both files first';return;}
+  g('wb_cal_progress').style.display='block';
+  g('wb_cal_results').style.display='none';
+  g('wb_prog_fill').style.width='5%';
+  g('wb_prog_text').textContent='Uploading files and loading dataset...';
+  g('btn_calibrate').disabled=true;
+
+  const pinnEnabled = g('enable_pinn_chk') && g('enable_pinn_chk').checked;
+
+  // Animate progress bar (indeterminate — real duration varies)
+  let pct=5;
+  const progTimer=setInterval(()=>{
+    pct=Math.min(pct+1,92);
+    g('wb_prog_fill').style.width=pct+'%';
+    if(pct<15)g('wb_prog_text').textContent='Loading dataset...';
+    else if(pct<30)g('wb_prog_text').textContent='Calibrating thermal model...';
+    else if(pct<55)g('wb_prog_text').textContent='Running extraction parameter optimisation (TRF)...';
+    else if(pct<65)g('wb_prog_text').textContent='Computing OLS metrics...';
+    else if(pinnEnabled && pct<75)g('wb_prog_text').textContent='Detecting operating regimes (PCA + GMM)...';
+    else if(pinnEnabled && pct<88)g('wb_prog_text').textContent='Training PINN discrepancy networks...';
+    else g('wb_prog_text').textContent='Saving profile...';
+  },pinnEnabled?4000:3000);
+
+  try{
+    const fd=new FormData();
+    fd.append('lims_file',_limsFile);
+    fd.append('dcs_file',_dcsFile);
+    fd.append('profile_name',g('profile_name_input').value||'plant_calibration_v1');
+    fd.append('weight_yield',g('w_yield').value);
+    fd.append('weight_visc',g('w_visc').value);
+    fd.append('enable_pinn', pinnEnabled ? '1' : '0');
+    // mode=dao_only is the only mode; no UI selector needed.
+
+    const res=await fetch('/api/calibrate_workbooks',{method:'POST',body:fd});
+    clearInterval(progTimer);
+    g('wb_prog_fill').style.width='100%';
+
+    const d=await res.json();
+    if(!d.ok){g('cal_status').textContent='Calibration error: '+(d.error||'unknown');g('wb_cal_progress').style.display='none';return;}
+
+    g('wb_prog_text').textContent='Done!';
+    setTimeout(()=>g('wb_cal_progress').style.display='none',1200);
+    _renderWbResults(d);
+
+  }catch(e){
+    clearInterval(progTimer);
+    g('wb_cal_progress').style.display='none';
+    g('cal_status').textContent='Request failed: '+e.message;
+  }finally{
+    g('btn_calibrate').disabled=false;
+  }
+}
+
+function _renderWbResults(d){
+  g('wb_cal_results').style.display='block';
+
+  // Before/after metrics
+  const mb=d.metrics_before||{}, ma=d.metrics_after||{};
+  const rows=[
+    ['Visc MAE (cSt)',  mb.visc?.mae,  ma.visc?.mae,  'lower'],
+    ['Visc R²',         mb.visc?.r2,   ma.visc?.r2,   'higher'],
+    ['Visc Bias (cSt)', mb.visc?.bias, ma.visc?.bias, 'zero'],
+    ['Yield MAE (vol%)',mb.yield?.mae, ma.yield?.mae,  'lower'],
+    ['Yield R²',        mb.yield?.r2,  ma.yield?.r2,   'higher'],
+  ];
+  let tbody='';
+  for(const [label,bv,av,dir] of rows){
+    const fmt=v=>(v==null?'—':typeof v==='number'?v.toFixed(3):v);
+    const delta=(bv!=null&&av!=null)?(av-bv):null;
+    let dc='';
+    if(delta!=null){
+      const imp=(dir==='lower'&&delta<0)||(dir==='higher'&&delta>0)||(dir==='zero'&&Math.abs(delta)<Math.abs(bv||1)*0.1);
+      dc=`color:${imp?'var(--green)':'var(--red)'}`;
+    }
+    tbody+=`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:3px 6px;color:var(--text)">${label}</td>
+      <td style="padding:3px 6px;text-align:center">${fmt(bv)}</td>
+      <td style="padding:3px 6px;text-align:center;font-weight:600;color:var(--text)">${fmt(av)}</td>
+      <td style="padding:3px 6px;text-align:center;${dc}">${delta!=null?(delta>0?'+':'')+delta.toFixed(3):'—'}</td>
+    </tr>`;
+  }
+  g('wb_metrics_body').innerHTML=tbody;
+
+  // Thermal metrics
+  const tm=d.thermal_metrics||{};
+  let thtml='';
+  for(const tr of ['train_a','train_b']){
+    const t=tm[tr]||{};
+    thtml+=`<b>${tr==='train_a'?'Train A':'Train B'}:</b> bot=${(t.mae_t_bottom||0).toFixed(2)}°C  mid=${(t.mae_t_middle||0).toFixed(2)}°C  sc=${(t.mae_t_steam_coil||0).toFixed(2)}°C  top=${(t.mae_t_top||0).toFixed(2)}°C<br>`;
+  }
+  g('wb_thermal_panel').innerHTML=thtml;
+
+  // Calibrated params
+  const cp=d.calibrated_params||{};
+  const defaults={K_multiplier:1.0,E_murphree:0.70,C_entrain:0.015,delta_crit:2.5};
+  let pbody='';
+  for(const[k,def] of Object.entries(defaults)){
+    const after=cp[k]!=null?cp[k].toFixed(4):'—';
+    pbody+=`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:3px 6px;color:var(--text)">${k}</td>
+      <td style="padding:3px 6px;text-align:center">${def}</td>
+      <td style="padding:3px 6px;text-align:center;font-weight:600;color:var(--accent)">${after}</td>
+    </tr>`;
+  }
+  g('wb_params_body').innerHTML=pbody;
+
+  // Parity plots
+  const pd=d.parity_data||{};
+  if((pd.visc_actual||[]).length>0){
+    renderParityPlot('wb_parity_visc',
+      pd.visc_actual, pd.visc_predicted,
+      pd.so_ratio||[], 'S/O ratio',
+      'Measured DAO Viscosity [cSt]', 'Predicted DAO Viscosity [cSt]');
+  }
+  if((pd.yield_actual||[]).length>0){
+    renderParityPlot('wb_parity_yield',
+      pd.yield_actual, pd.yield_predicted,
+      pd.so_ratio||[], 'S/O ratio',
+      'Measured DAO Yield [vol%]', 'Predicted DAO Yield [vol%]');
+  }
+
+  // Apply calibrated params to sidebar sliders
+  if(cp.K_multiplier!=null){g('K_multiplier').value=cp.K_multiplier;if(g('Km_n'))g('Km_n').value=cp.K_multiplier;}
+  if(cp.E_murphree!=null){g('E').value=cp.E_murphree;if(g('E_n'))g('E_n').value=cp.E_murphree;}
+  if(cp.C_entrain!=null){g('C_entrain').value=cp.C_entrain;if(g('Ce_n'))g('Ce_n').value=cp.C_entrain;}
+  if(cp.delta_crit!=null){g('delta_crit').value=cp.delta_crit;if(g('dc_n'))g('dc_n').value=cp.delta_crit;}
+  g('cal_status').textContent=`Calibration complete [DAO-only mode] — profile saved as "${d.profile_name}"`;
+  loadCalibrationProfiles();
+
+  // PINN results panel
+  const pr = d.pinn_result;
+  const pinnPanel = g('wb_pinn_panel');
+  if(pr && pinnPanel){
+    pinnPanel.style.display='block';
+
+    // Status badge
+    const status = pr.status || 'unknown';
+    const badge = g('wb_pinn_badge');
+    const modeText = g('wb_pinn_mode_text');
+    const badgeColors = {
+      deployed:               {bg:'var(--green)',color:'#000',label:'DEPLOYED'},
+      discarded_quality_gate: {bg:'var(--red)',  color:'#fff',label:'DISCARDED'},
+      failed:                 {bg:'#888',        color:'#fff',label:'FAILED'},
+      unavailable:            {bg:'#555',        color:'#ccc',label:'UNAVAILABLE'},
+    };
+    const bc = badgeColors[status] || {bg:'#555',color:'#ccc',label:status.toUpperCase()};
+    badge.style.background   = bc.bg;
+    badge.style.color        = bc.color;
+    badge.textContent        = bc.label;
+    const corrMode = pr.correction_mode || 'ols';
+    modeText.textContent     = `correction_mode: ${corrMode}  |  clusters: ${pr.n_clusters||0}`;
+
+    // Regime clusters
+    const rs = pr.regime_summary || {};
+    const sizes = rs.cluster_sizes || [];
+    if(sizes.length > 0){
+      let chtml = '<div style="font-size:10px;color:var(--text2);margin-bottom:4px">Operating Regimes:</div>';
+      chtml += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+      sizes.forEach((s,i)=>{
+        const frac = rs.cluster_fractions ? (rs.cluster_fractions[i]*100).toFixed(0)+'%' : '';
+        chtml += `<span style="padding:2px 7px;border-radius:10px;font-size:10px;background:var(--bg4);border:1px solid var(--border2);color:var(--text)">C${i}: ${s} rows ${frac}</span>`;
+      });
+      chtml += '</div>';
+      if(rs.pca_variance_retained){
+        chtml += `<div style="font-size:10px;color:var(--text2);margin-top:3px">PCA variance retained: ${(rs.pca_variance_retained*100).toFixed(1)}%  |  ${rs.n_pca_components||'?'} components</div>`;
+      }
+      g('wb_pinn_clusters').innerHTML = chtml;
+    }
+
+    // Training summary
+    const tr = pr.training_result || {};
+    if(tr.epochs_trained){
+      g('wb_pinn_training').innerHTML =
+        `Epochs: ${tr.epochs_trained}  |  Best epoch: ${tr.best_epoch||0}  |  ` +
+        `Val loss: ${(tr.val_loss||0).toFixed(5)}  |  Elapsed: ${(tr.elapsed_sec||0).toFixed(0)}s`;
+    }
+
+    // PINN vs OLS metric comparison
+    const olmv = pr.ols_metrics || {visc:{},yield:{}};
+    const pmv  = pr.pinn_metrics || {visc:{},yield:{}};
+    const mrows = [
+      ['Visc MAE (cSt)',  olmv.visc?.mae,  pmv.visc?.mae,  'lower'],
+      ['Visc R²',         olmv.visc?.r2,   pmv.visc?.r2,   'higher'],
+      ['Yield MAE (vol%)',olmv.yield?.mae, pmv.yield?.mae, 'lower'],
+      ['Yield R²',        olmv.yield?.r2,  pmv.yield?.r2,  'higher'],
+    ];
+    let mbody='';
+    for(const [label,ov,pv,dir] of mrows){
+      const fmt=v=>(v==null||isNaN(v)?'—':v.toFixed(3));
+      const delta=(ov!=null&&pv!=null&&!isNaN(ov)&&!isNaN(pv))?(pv-ov):null;
+      let dc='';
+      if(delta!=null){
+        const imp=(dir==='lower'&&delta<0)||(dir==='higher'&&delta>0);
+        dc=`color:${imp?'var(--green)':'var(--red)'}`;
+      }
+      mbody+=`<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:3px 6px;color:var(--text)">${label}</td>
+        <td style="padding:3px 6px;text-align:center">${fmt(ov)}</td>
+        <td style="padding:3px 6px;text-align:center;font-weight:600">${fmt(pv)}</td>
+        <td style="padding:3px 6px;text-align:center;${dc}">${delta!=null?(delta>0?'+':'')+delta.toFixed(3):'—'}</td>
+      </tr>`;
+    }
+    g('wb_pinn_metrics_body').innerHTML = mbody;
+
+    // Quality gate message
+    const qg = pr.quality_gate || {};
+    g('wb_pinn_gate_msg').textContent = qg.passed
+      ? '✓ Quality gate passed — PINN corrections active'
+      : `Quality gate: ${qg.detail||'failed'}`;
+    g('wb_pinn_gate_msg').style.color = qg.passed ? 'var(--green)' : 'var(--red)';
+  } else if(pinnPanel){
+    pinnPanel.style.display='none';
+  }
+}
+
+function renderParityPlot(containerId, actual, predicted, colorValues, colorLabel, xLabel, yLabel){
+  if(typeof Plotly==='undefined')return;
+  const minV=Math.min(...actual,...predicted);
+  const maxV=Math.max(...actual,...predicted);
+  Plotly.newPlot(containerId,[
+    {x:actual,y:predicted,mode:'markers',type:'scatter',
+     marker:{color:colorValues.length?colorValues:'var(--accent)',size:5,colorscale:'RdYlBu',
+             showscale:colorValues.length>0,colorbar:{title:{text:colorLabel},thickness:10,len:0.8}},
+     name:'Data'},
+    {x:[minV,maxV],y:[minV,maxV],mode:'lines',type:'scatter',
+     line:{color:'rgba(255,255,255,0.3)',dash:'dash'},name:'y=x'},
+  ],{
+    paper_bgcolor:'transparent',plot_bgcolor:'transparent',
+    margin:{t:20,b:50,l:55,r:20},
+    xaxis:{title:xLabel,color:'var(--text2)',gridcolor:'var(--border)'},
+    yaxis:{title:yLabel,color:'var(--text2)',gridcolor:'var(--border)'},
+    legend:{bgcolor:'transparent'},font:{color:'var(--text2)',size:10},
+  },{responsive:true,displayModeBar:false});
+}
+
+// ── Server kill button ────────────────────────────────────────────────────────
+async function killServer(){
+  const btn=g('btn_kill_server');
+  if(!confirm('Stop the SDA Simulator server?\n\nThe browser window will become inactive and you will need to restart run_simulation.py to use the simulator again.')){return;}
+  btn.disabled=true;
+  btn.textContent='Stopping…';
+  btn.style.background='#450a0a';
+  try{
+    await fetch('/api/shutdown',{method:'POST'});
+  }catch(_){}  // fetch rejects when the server dies mid-response — that is expected
+  btn.textContent='Server stopped';
+  btn.style.color='#f87171';
+  g('hdr_status').textContent='Server has been stopped. Close this tab and restart run_simulation.py to resume.';
+}
+
+</script>
+<footer style="background:var(--bg2);border-top:1px solid var(--border);padding:6px 20px;text-align:center;font-size:10px;color:var(--text3)">
+  Developed by Piyush Paradkar &nbsp;|&nbsp; HPCL Mumbai Refinery &nbsp;|&nbsp; NIT Warangal
+</footer>
+</body>
+</html>
